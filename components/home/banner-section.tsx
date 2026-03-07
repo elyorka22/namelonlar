@@ -8,40 +8,40 @@ interface BannerSectionProps {
 
 export async function BannerSection({ position }: BannerSectionProps) {
   try {
+    if (!process.env.DATABASE_URL) {
+      return null;
+    }
     const now = new Date();
     const banners = await prisma.banner.findMany({
-    where: {
-      position,
-      isActive: true,
-      AND: [
-        {
-          OR: [
-            { startDate: null },
-            { startDate: { lte: now } },
-          ],
-        },
-        {
-          OR: [
-            { endDate: null },
-            { endDate: { gte: now } },
-          ],
-        },
-      ],
-    },
-    take: 3,
-  });
+      where: {
+        position,
+        isActive: true,
+        AND: [
+          {
+            OR: [
+              { startDate: null },
+              { startDate: { lte: now } },
+            ],
+          },
+          {
+            OR: [
+              { endDate: null },
+              { endDate: { gte: now } },
+            ],
+          },
+        ],
+      },
+      take: 3,
+    });
 
     if (banners.length === 0) {
       return null;
     }
-  } catch (error) {
-    return null;
-  }
 
-  return (
-    <section className="py-8 bg-white">
-      <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    return (
+      <section className="py-8 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {banners.map((banner) => (
             <Link
               key={banner.id}
@@ -65,6 +65,10 @@ export async function BannerSection({ position }: BannerSectionProps) {
         </div>
       </div>
     </section>
-  );
+    );
+  } catch (error) {
+    console.error("Error fetching banners:", error);
+    return null;
+  }
 }
 
