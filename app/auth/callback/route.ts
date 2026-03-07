@@ -100,12 +100,25 @@ export async function GET(request: NextRequest) {
         // Продолжаем даже если синхронизация не удалась
       }
       
-      // Проверяем сессию после обмена кода
-      const { data: { session } } = await supabase.auth.getSession();
+      // ВАЖНО: Вызываем getSession после exchangeCodeForSession
+      // Это гарантирует, что cookies будут установлены правильно
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       console.log("[CALLBACK] Final session check:", { 
         hasSession: !!session, 
-        userEmail: session?.user?.email 
+        userEmail: session?.user?.email,
+        sessionError: sessionError?.message
       });
+      
+      // Проверяем, что cookies установлены
+      const finalCookies = cookieStore.getAll();
+      const supabaseCookies = finalCookies.filter(c => 
+        c.name.includes('supabase') || c.name.includes('sb-')
+      );
+      console.log("[CALLBACK] Supabase cookies after exchange:", supabaseCookies.length);
+      
+      if (!session) {
+        console.error("[CALLBACK] ⚠️ WARNING: Session not found after exchangeCodeForSession!");
+      }
     } else if (error) {
       console.error("[CALLBACK] Error exchanging code:", error.message);
     }
