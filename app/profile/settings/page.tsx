@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ChangePasswordForm } from "@/components/profile/change-password-form";
 import { UpdateProfileForm } from "@/components/profile/update-profile-form";
 import { Lock, User } from "lucide-react";
+import { cookies } from "next/headers";
 
 export const dynamic = 'force-dynamic';
 
