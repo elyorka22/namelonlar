@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
         emailProvided: email,
         emailNormalized: normalizedEmail,
         emailInDatabase: user.email,
-        emailMatch: normalizedEmail === user.email.toLowerCase(),
+        emailMatch: user.email ? normalizedEmail === user.email.toLowerCase() : false,
         passwordLength: password.length,
       },
     });
