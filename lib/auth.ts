@@ -31,14 +31,26 @@ export const authOptions: NextAuthOptions = {
           console.log("[AUTH] Password length provided:", providedPassword.length);
           
           // Ищем пользователя (без учета регистра)
-          const user = await prisma.user.findFirst({
-            where: { 
-              email: {
-                equals: normalizedEmail,
-                mode: 'insensitive'
-              }
-            },
-          });
+          let user;
+          try {
+            user = await prisma.user.findFirst({
+              where: { 
+                email: {
+                  equals: normalizedEmail,
+                  mode: 'insensitive'
+                }
+              },
+            });
+          } catch (dbError: any) {
+            console.error("[AUTH] Database connection error:", dbError.message);
+            // Если база данных недоступна, возвращаем null
+            // NextAuth покажет стандартную ошибку
+            if (dbError.message?.includes("Tenant or user not found") || 
+                dbError.message?.includes("FATAL")) {
+              console.error("[AUTH] Database authentication failed. Check DATABASE_URL in Vercel.");
+            }
+            return null;
+          }
 
           if (!user) {
             console.log("[AUTH] User not found:", normalizedEmail);
