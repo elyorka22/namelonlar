@@ -48,7 +48,7 @@ export async function GET() {
           : errorMessage.includes("Connection")
           ? "connection"
           : "unknown",
-        suggestions: [],
+        suggestions: [] as string[],
       };
 
       if (errorMessage.includes("Tenant or user not found")) {
