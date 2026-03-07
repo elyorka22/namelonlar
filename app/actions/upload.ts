@@ -1,12 +1,7 @@
 "use server";
 
-import { v2 as cloudinary } from "cloudinary";
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { supabaseAdmin } from "@/lib/supabase";
+import { v4 as uuidv4 } from "uuid";
 
 export async function uploadImage(formData: FormData) {
   const file = formData.get("file") as File;
@@ -14,27 +9,47 @@ export async function uploadImage(formData: FormData) {
     throw new Error("No file provided");
   }
 
+  // Проверяем размер файла (макс 5MB)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxSize) {
+    throw new Error("File size exceeds 5MB limit");
+  }
+
+  // Проверяем тип файла
+  if (!file.type.startsWith("image/")) {
+    throw new Error("File must be an image");
+  }
+
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
 
-  return new Promise<{ url: string }>((resolve, reject) => {
-    cloudinary.uploader
-      .upload_stream(
-        {
-          resource_type: "image",
-          folder: "namangan-elonlar",
-        },
-        (error, result) => {
-          if (error) {
-            reject(error);
-          } else if (result) {
-            resolve({ url: result.secure_url });
-          } else {
-            reject(new Error("Upload failed"));
-          }
-        }
-      )
-      .end(buffer);
-  });
+  // Генерируем уникальное имя файла
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${uuidv4()}.${fileExt}`;
+  const filePath = `listings/${fileName}`;
+
+  try {
+    // Загружаем файл в Supabase Storage
+    const { data, error } = await supabaseAdmin.storage
+      .from("images")
+      .upload(filePath, buffer, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (error) {
+      throw new Error(`Upload failed: ${error.message}`);
+    }
+
+    // Получаем публичный URL
+    const {
+      data: { publicUrl },
+    } = supabaseAdmin.storage.from("images").getPublicUrl(filePath);
+
+    return { url: publicUrl };
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    throw error;
+  }
 }
 
