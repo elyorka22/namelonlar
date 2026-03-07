@@ -9,6 +9,11 @@ export async function uploadImage(formData: FormData) {
     throw new Error("No file provided");
   }
 
+  // Проверяем, настроен ли Supabase
+  if (!supabaseAdmin) {
+    throw new Error("Supabase Storage is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY environment variables.");
+  }
+
   // Проверяем размер файла (макс 5MB)
   const maxSize = 5 * 1024 * 1024; // 5MB
   if (file.size > maxSize) {
