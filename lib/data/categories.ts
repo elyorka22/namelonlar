@@ -161,6 +161,9 @@ export async function getCategories() {
 
 export async function getCategoryBySlug(slug: string) {
   try {
+    if (!process.env.DATABASE_URL) {
+      return null;
+    }
     const category = await prisma.category.findUnique({
       where: { slug },
       include: {

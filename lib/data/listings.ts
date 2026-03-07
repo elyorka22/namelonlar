@@ -76,6 +76,9 @@ export async function getListings(params?: {
 
 export async function getListingById(id: string) {
   try {
+    if (!process.env.DATABASE_URL) {
+      return null;
+    }
     const listing = await prisma.listing.findUnique({
       where: { id },
       include: {
@@ -196,6 +199,9 @@ export async function getSimilarListings(
   limit: number = 6
 ) {
   try {
+    if (!process.env.DATABASE_URL) {
+      return [];
+    }
     const listings = await prisma.listing.findMany({
       where: {
         id: { not: listingId },
