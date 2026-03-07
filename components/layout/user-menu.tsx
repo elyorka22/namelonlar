@@ -62,9 +62,13 @@ export function UserMenu({ user }: UserMenuProps) {
             </div>
             <div className="py-2">
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   setIsOpen(false);
+                  console.log("[USERMENU] Navigating to /profile");
                   router.push("/profile");
+                  router.refresh();
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
@@ -72,9 +76,13 @@ export function UserMenu({ user }: UserMenuProps) {
                 <span>Profil</span>
               </button>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   setIsOpen(false);
+                  console.log("[USERMENU] Navigating to /profile/listings");
                   router.push("/profile/listings");
+                  router.refresh();
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
@@ -82,9 +90,13 @@ export function UserMenu({ user }: UserMenuProps) {
                 <span>Mening e'lonlarim</span>
               </button>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   setIsOpen(false);
+                  console.log("[USERMENU] Navigating to /profile/favorites");
                   router.push("/profile/favorites");
+                  router.refresh();
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
@@ -92,9 +104,13 @@ export function UserMenu({ user }: UserMenuProps) {
                 <span>Sevimlilar</span>
               </button>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
                   setIsOpen(false);
+                  console.log("[USERMENU] Navigating to /profile/settings");
                   router.push("/profile/settings");
+                  router.refresh();
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
