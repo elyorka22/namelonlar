@@ -8,11 +8,21 @@ import { Lock, User } from "lucide-react";
 export const dynamic = 'force-dynamic';
 
 export default async function ProfileSettingsPage() {
-  const currentUser = await getCurrentUser();
-  console.log("[PROFILE-SETTINGS] getCurrentUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
+  // Пробуем получить пользователя с небольшой задержкой для синхронизации cookies
+  let currentUser = await getCurrentUser();
+  console.log("[PROFILE-SETTINGS] First getCurrentUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
+  
+  // Если пользователь не найден, пробуем еще раз (возможно cookies еще не синхронизировались)
+  if (!currentUser?.id) {
+    console.log("[PROFILE-SETTINGS] User not found on first try, retrying...");
+    // Небольшая задержка для синхронизации cookies после middleware
+    await new Promise(resolve => setTimeout(resolve, 100));
+    currentUser = await getCurrentUser();
+    console.log("[PROFILE-SETTINGS] Second getCurrentUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
+  }
   
   if (!currentUser?.id) {
-    console.log("[PROFILE-SETTINGS] No user found, redirecting to signin");
+    console.log("[PROFILE-SETTINGS] No user found after retry, redirecting to signin");
     redirect("/auth/signin");
   }
 

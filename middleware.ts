@@ -32,14 +32,22 @@ export async function middleware(request: NextRequest) {
   // ВАЖНО: Обновляем сессию Supabase ПЕРЕД отправкой ответа
   // Это обновит cookies если сессия изменилась
   try {
-    const { data: { user }, error } = await supabase.auth.getUser();
-    if (user) {
-      // Сессия активна, обновляем cookies через getSession
-      await supabase.auth.getSession();
-    } else if (error) {
+    // Сначала проверяем сессию (это обновит cookies если нужно)
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (session?.user) {
+      // Сессия активна, cookies уже обновлены через getSession
+      // Дополнительно проверяем getUser для надежности
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (user && !userError) {
+        // Все в порядке, сессия валидна
+      } else if (userError && userError.message !== "Auth session missing!") {
+        console.log("[MIDDLEWARE] Supabase getUser error:", userError.message);
+      }
+    } else if (sessionError) {
       // Игнорируем ошибки отсутствия сессии - это нормально для неавторизованных пользователей
-      if (error.message !== "Auth session missing!") {
-        console.log("[MIDDLEWARE] Supabase auth error:", error.message);
+      if (sessionError.message !== "Auth session missing!") {
+        console.log("[MIDDLEWARE] Supabase session error:", sessionError.message);
       }
     }
   } catch (error) {
