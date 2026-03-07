@@ -18,7 +18,11 @@ interface UserMenuProps {
 
 export function UserMenu({ user }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
   const router = useRouter();
+
+  // Проверяем, валиден ли URL изображения
+  const hasValidImage = user.image && !imageError && user.image.startsWith("http");
 
   return (
     <div className="relative">
@@ -27,13 +31,15 @@ export function UserMenu({ user }: UserMenuProps) {
         className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 transition-colors border-2 border-transparent hover:border-gray-200"
         title={user.name || user.email || "Profil"}
       >
-        {user.image ? (
+        {hasValidImage ? (
           <Image
             src={user.image}
             alt={user.name || "User"}
             width={36}
             height={36}
-            className="rounded-full"
+            className="rounded-full object-cover"
+            onError={() => setImageError(true)}
+            unoptimized={user.image?.includes("googleusercontent.com")}
           />
         ) : (
           <div className="w-9 h-9 rounded-full bg-primary-600 flex items-center justify-center text-white font-semibold text-sm">
