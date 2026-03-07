@@ -13,7 +13,11 @@ export async function GET(request: NextRequest) {
 
   // В Route Handler можно устанавливать cookies
   const cookieStore = await cookies();
-  const response = NextResponse.redirect(new URL(next, request.url));
+  
+  // URL to redirect to after sign in process completes
+  const redirectUrl = new URL(next, request.url);
+  redirectUrl.searchParams.set("auth", "success");
+  const response = NextResponse.redirect(redirectUrl);
 
   if (code) {
     // Создаем клиент с полным доступом к cookies для Route Handler
@@ -34,6 +38,7 @@ export async function GET(request: NextRequest) {
         },
       }
     );
+    
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     console.log("[CALLBACK] Exchange code result:", { 
@@ -94,23 +99,16 @@ export async function GET(request: NextRequest) {
         console.error("[CALLBACK] Error syncing user to Prisma:", error);
         // Продолжаем даже если синхронизация не удалась
       }
+      
+      // Проверяем сессию после обмена кода
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log("[CALLBACK] Final session check:", { 
+        hasSession: !!session, 
+        userEmail: session?.user?.email 
+      });
     } else if (error) {
       console.error("[CALLBACK] Error exchanging code:", error.message);
     }
-  }
-
-    // URL to redirect to after sign in process completes
-    // Добавляем параметр для обновления страницы
-    const redirectUrl = new URL(next, request.url);
-    redirectUrl.searchParams.set("auth", "success");
-    response.headers.set("Location", redirectUrl.toString());
-    
-    // Проверяем сессию после обмена кода
-    const { data: { session } } = await supabase.auth.getSession();
-    console.log("[CALLBACK] Final session check:", { 
-      hasSession: !!session, 
-      userEmail: session?.user?.email 
-    });
   }
   
   return response;
