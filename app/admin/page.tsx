@@ -4,6 +4,8 @@ import { AdminListings } from "@/components/admin/admin-listings";
 import { AdminUsers } from "@/components/admin/admin-users";
 import { AdminRecentActivity } from "@/components/admin/admin-recent-activity";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPage() {
   const stats = await prisma.$transaction([
     prisma.listing.count(),

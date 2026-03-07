@@ -6,6 +6,8 @@ import { BannerSection } from "@/components/home/banner-section";
 import { getCategories } from "@/lib/data/categories";
 import { getFeaturedListings, getNewListings } from "@/lib/data/listings";
 
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage() {
   const [categories, featuredListings, newListings] = await Promise.all([
     getCategories(),
