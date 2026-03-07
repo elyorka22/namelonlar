@@ -1,7 +1,7 @@
 "use server";
 
 import { supabaseAdmin } from "@/lib/supabase";
-import { v4 as uuidv4 } from "uuid";
+import { randomUUID } from "crypto";
 
 export async function uploadImage(formData: FormData) {
   const file = formData.get("file") as File;
