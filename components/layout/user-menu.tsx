@@ -62,38 +62,46 @@ export function UserMenu({ user }: UserMenuProps) {
               <p className="text-sm text-gray-500">{user.email}</p>
             </div>
             <div className="py-2">
-              <Link
-                href="/profile"
-                className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors"
-                onClick={() => setIsOpen(false)}
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  router.push("/profile");
+                }}
+                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
                 <User size={18} className="text-gray-600" />
                 <span>Profil</span>
-              </Link>
-              <Link
-                href="/profile/listings"
-                className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors"
-                onClick={() => setIsOpen(false)}
+              </button>
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  router.push("/profile/listings");
+                }}
+                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
                 <FileText size={18} className="text-gray-600" />
                 <span>Mening e'lonlarim</span>
-              </Link>
-              <Link
-                href="/profile/favorites"
-                className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors"
-                onClick={() => setIsOpen(false)}
+              </button>
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  router.push("/profile/favorites");
+                }}
+                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
                 <Heart size={18} className="text-gray-600" />
                 <span>Sevimlilar</span>
-              </Link>
-              <Link
-                href="/profile/settings"
-                className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors"
-                onClick={() => setIsOpen(false)}
+              </button>
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  router.push("/profile/settings");
+                }}
+                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
                 <Settings size={18} className="text-gray-600" />
                 <span>Sozlamalar</span>
-              </Link>
+              </button>
               <button
                 onClick={async () => {
                   setIsOpen(false);
