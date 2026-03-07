@@ -1,11 +1,8 @@
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/auth-helpers";
-import { UserMenu } from "./user-menu";
-import { Plus, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import { AuthButton } from "./auth-button";
 
 export async function Header() {
-  const user = await getCurrentUser();
-
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
       <div className="container mx-auto px-4">
@@ -30,38 +27,11 @@ export async function Header() {
             >
               Kategoriyalar
             </Link>
-            {user ? (
-              <>
-                <Link
-                  href="/listing/new"
-                  className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
-                >
-                  <Plus size={20} />
-                  <span>E'lon joylashtirish</span>
-                </Link>
-                <UserMenu user={user} />
-              </>
-            ) : (
-              <Link
-                href="/auth/signin"
-                className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                Kirish
-              </Link>
-            )}
+            <AuthButton />
           </nav>
 
           <div className="md:hidden">
-            {user ? (
-              <UserMenu user={user} />
-            ) : (
-              <Link
-                href="/auth/signin"
-                className="text-gray-700 hover:text-primary-600"
-              >
-                Kirish
-              </Link>
-            )}
+            <AuthButton />
           </div>
         </div>
       </div>

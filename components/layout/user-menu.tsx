@@ -18,27 +18,29 @@ interface UserMenuProps {
 
 export function UserMenu({ user }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
 
   return (
     <div className="relative">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+        className="flex items-center gap-2 p-1.5 rounded-full hover:bg-gray-100 transition-colors border-2 border-transparent hover:border-gray-200"
+        title={user.name || user.email || "Profil"}
       >
         {user.image ? (
           <Image
             src={user.image}
             alt={user.name || "User"}
-            width={32}
-            height={32}
+            width={36}
+            height={36}
             className="rounded-full"
           />
         ) : (
-          <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white font-semibold">
-            {user.name?.[0]?.toUpperCase() || "U"}
+          <div className="w-9 h-9 rounded-full bg-primary-600 flex items-center justify-center text-white font-semibold text-sm">
+            {user.name?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || "U"}
           </div>
         )}
-        <ChevronDown size={16} className="text-gray-600" />
+        <ChevronDown size={16} className="text-gray-600 hidden md:block" />
       </button>
 
       {isOpen && (
@@ -94,7 +96,8 @@ export function UserMenu({ user }: UserMenuProps) {
                   // Выход из NextAuth (для email/password)
                   await nextAuthSignOut({ redirect: false });
                   // Перезагружаем страницу
-                  window.location.href = "/";
+                  router.push("/");
+                  router.refresh();
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left text-red-600"
               >
