@@ -49,6 +49,14 @@ function SignInForm() {
 
     try {
       const supabase = createClient();
+      
+      // Проверяем, что Supabase настроен
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+        setError("Supabase не настроен. Проверьте переменные окружения.");
+        setGoogleLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -57,12 +65,19 @@ function SignInForm() {
       });
 
       if (error) {
+        console.error("Supabase OAuth error:", error);
+        setError(`Google bilan kirishda xatolik: ${error.message}`);
+        setGoogleLoading(false);
+      } else if (data?.url) {
+        // Если получили URL, перенаправляем на него
+        window.location.href = data.url;
+      } else {
         setError("Google bilan kirishda xatolik yuz berdi.");
         setGoogleLoading(false);
       }
-      // Если успешно, произойдет редирект на Google, затем на callback
-    } catch (err) {
-      setError("Xatolik yuz berdi. Qayta urinib ko'ring.");
+    } catch (err: any) {
+      console.error("Google sign in error:", err);
+      setError(`Xatolik yuz berdi: ${err?.message || "Noma'lum xatolik"}`);
       setGoogleLoading(false);
     }
   };
