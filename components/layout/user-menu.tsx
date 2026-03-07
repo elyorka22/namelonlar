@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { signOut as nextAuthSignOut } from "next-auth/react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
