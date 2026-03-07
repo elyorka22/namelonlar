@@ -25,13 +25,24 @@ export const authOptions: NextAuthOptions = {
         try {
           // Нормализуем email (убираем пробелы, приводим к нижнему регистру)
           const normalizedEmail = credentials.email.trim().toLowerCase();
+          const providedPassword = credentials.password;
           
-          const user = await prisma.user.findUnique({
-            where: { email: normalizedEmail },
+          console.log("[AUTH] Attempting login for:", normalizedEmail);
+          console.log("[AUTH] Password length provided:", providedPassword.length);
+          
+          // Ищем пользователя (без учета регистра)
+          const user = await prisma.user.findFirst({
+            where: { 
+              email: {
+                equals: normalizedEmail,
+                mode: 'insensitive'
+              }
+            },
           });
 
           if (!user) {
-            // Попробуем найти без нормализации (на случай, если в базе с заглавными)
+            console.log("[AUTH] User not found:", normalizedEmail);
+            // Попробуем найти с оригинальным email (на случай пробелов)
             const userCaseSensitive = await prisma.user.findFirst({
               where: { 
                 email: {
@@ -42,7 +53,7 @@ export const authOptions: NextAuthOptions = {
             });
             
             if (!userCaseSensitive) {
-              console.log("[AUTH] User not found:", normalizedEmail);
+              console.log("[AUTH] User not found even with original email");
               return null;
             }
             
@@ -63,18 +74,23 @@ export const authOptions: NextAuthOptions = {
               return null;
             }
 
-            const isPasswordValid = await bcrypt.compare(
-              credentials.password,
-              finalUser.password
-            );
+            // Пробуем сравнить пароль (с разными вариантами)
+            let isPasswordValid = await bcrypt.compare(credentials.password, finalUser.password);
+            
+            // Если не совпадает, пробуем с trimmed версией
+            if (!isPasswordValid) {
+              isPasswordValid = await bcrypt.compare(credentials.password.trim(), finalUser.password);
+            }
 
             if (!isPasswordValid) {
               console.log("[AUTH] Invalid password for:", finalUser.email);
               console.log("[AUTH] Password provided length:", credentials.password.length);
+              console.log("[AUTH] Password hash in DB length:", finalUser.password.length);
+              console.log("[AUTH] Password hash prefix:", finalUser.password.substring(0, 15));
               return null;
             }
 
-            console.log("[AUTH] Login successful for:", finalUser.email, "Role:", finalUser.role);
+            console.log("[AUTH] ✅ Login successful for:", finalUser.email, "Role:", finalUser.role);
             return {
               id: finalUser.id,
               email: finalUser.email,
@@ -97,18 +113,23 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
 
-          const isPasswordValid = await bcrypt.compare(
-            credentials.password,
-            user.password
-          );
+          // Пробуем сравнить пароль
+          let isPasswordValid = await bcrypt.compare(credentials.password, user.password);
+          
+          // Если не совпадает, пробуем с trimmed версией
+          if (!isPasswordValid) {
+            isPasswordValid = await bcrypt.compare(credentials.password.trim(), user.password);
+          }
 
           if (!isPasswordValid) {
             console.log("[AUTH] Invalid password for:", user.email);
             console.log("[AUTH] Password provided length:", credentials.password.length);
+            console.log("[AUTH] Password hash in DB length:", user.password.length);
+            console.log("[AUTH] Password hash prefix:", user.password.substring(0, 15));
             return null;
           }
 
-          console.log("[AUTH] Login successful for:", user.email, "Role:", user.role);
+          console.log("[AUTH] ✅ Login successful for:", user.email, "Role:", user.role);
           return {
             id: user.id,
             email: user.email,
