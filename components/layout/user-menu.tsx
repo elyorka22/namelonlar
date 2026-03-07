@@ -67,8 +67,8 @@ export function UserMenu({ user }: UserMenuProps) {
                   e.stopPropagation();
                   setIsOpen(false);
                   console.log("[USERMENU] Navigating to /profile");
-                  router.push("/profile");
-                  router.refresh();
+                  // Используем window.location для надежной навигации
+                  window.location.href = "/profile";
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
@@ -81,8 +81,7 @@ export function UserMenu({ user }: UserMenuProps) {
                   e.stopPropagation();
                   setIsOpen(false);
                   console.log("[USERMENU] Navigating to /profile/listings");
-                  router.push("/profile/listings");
-                  router.refresh();
+                  window.location.href = "/profile/listings";
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
@@ -95,8 +94,7 @@ export function UserMenu({ user }: UserMenuProps) {
                   e.stopPropagation();
                   setIsOpen(false);
                   console.log("[USERMENU] Navigating to /profile/favorites");
-                  router.push("/profile/favorites");
-                  router.refresh();
+                  window.location.href = "/profile/favorites";
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
@@ -109,8 +107,7 @@ export function UserMenu({ user }: UserMenuProps) {
                   e.stopPropagation();
                   setIsOpen(false);
                   console.log("[USERMENU] Navigating to /profile/settings");
-                  router.push("/profile/settings");
-                  router.refresh();
+                  window.location.href = "/profile/settings";
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
