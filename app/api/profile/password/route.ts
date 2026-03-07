@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth-helpers";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
@@ -7,13 +9,70 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser();
+    console.log("[API-PASSWORD] Checking authentication...");
+    
+    // Пробуем получить пользователя через getCurrentUser
+    let currentUser = await getCurrentUser();
+    console.log("[API-PASSWORD] getCurrentUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
+    
+    // Если getCurrentUser не нашел пользователя, пробуем напрямую через Supabase
     if (!currentUser?.id) {
+      console.log("[API-PASSWORD] getCurrentUser failed, trying direct Supabase check...");
+      
+      const cookieStore = await cookies();
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return cookieStore.getAll();
+            },
+            // В API routes можно устанавливать cookies
+            setAll(cookiesToSet) {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              );
+            },
+          },
+        }
+      );
+      
+      const { data: { user: supabaseUser }, error: userError } = await supabase.auth.getUser();
+      
+      if (supabaseUser) {
+        console.log("[API-PASSWORD] Found user via direct Supabase check:", supabaseUser.email);
+        
+        // Находим пользователя в Prisma
+        const prismaUser = await prisma.user.findUnique({
+          where: { email: supabaseUser.email! },
+        });
+        
+        if (prismaUser) {
+          currentUser = {
+            id: prismaUser.id,
+            email: prismaUser.email,
+            name: prismaUser.name,
+            image: prismaUser.image,
+          };
+          console.log("[API-PASSWORD] ✅ User found via Supabase:", currentUser.email);
+        } else {
+          console.log("[API-PASSWORD] ❌ User not found in Prisma");
+        }
+      } else {
+        console.log("[API-PASSWORD] ❌ No Supabase user found:", userError?.message);
+      }
+    }
+    
+    if (!currentUser?.id) {
+      console.log("[API-PASSWORD] ❌ No user found, returning 401");
       return NextResponse.json(
-        { error: "Авторизация требуется" },
+        { error: "Авторизация требуется. Iltimos, qayta kirib ko'ring." },
         { status: 401 }
       );
     }
+    
+    console.log("[API-PASSWORD] ✅ User authenticated:", currentUser.email);
 
     const body = await request.json();
     const { currentPassword, newPassword } = body;
