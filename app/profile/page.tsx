@@ -9,7 +9,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function ProfilePage() {
   const currentUser = await getCurrentUser();
+  console.log("[PROFILE] getCurrentUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
+  
   if (!currentUser?.id) {
+    console.log("[PROFILE] No user found, redirecting to signin");
     redirect("/auth/signin");
   }
 

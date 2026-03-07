@@ -24,11 +24,51 @@ export async function getCurrentUser() {
   // Сначала проверяем Supabase Auth (для Google OAuth)
   try {
     const supabase = await createClient();
+    
+    // Пробуем получить сессию (более надежно, чем getUser)
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (session?.user) {
+      console.log("[AUTH] Supabase session found for user:", session.user.email);
+      
+      // Проверяем, есть ли пользователь в Prisma
+      let prismaUser = await prisma.user.findUnique({
+        where: { email: session.user.email! },
+      });
+
+      // Если пользователя нет в Prisma, создаем его
+      if (!prismaUser) {
+        console.log("[AUTH] Creating user in Prisma:", session.user.email);
+        prismaUser = await prisma.user.create({
+          data: {
+            email: session.user.email!,
+            name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || null,
+            image: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null,
+            emailVerified: session.user.email_confirmed_at ? new Date(session.user.email_confirmed_at) : null,
+          },
+        });
+      }
+
+      console.log("[AUTH] Returning user from Supabase:", prismaUser.id);
+      return {
+        id: prismaUser.id,
+        email: prismaUser.email,
+        name: prismaUser.name,
+        image: prismaUser.image,
+      };
+    } else if (sessionError) {
+      console.log("[AUTH] Supabase session error:", sessionError.message);
+    }
+    
+    // Если getSession не сработал, пробуем getUser
     const {
       data: { user: supabaseUser },
+      error: userError,
     } = await supabase.auth.getUser();
 
     if (supabaseUser) {
+      console.log("[AUTH] Supabase user found via getUser:", supabaseUser.email);
+      
       // Проверяем, есть ли пользователь в Prisma
       let prismaUser = await prisma.user.findUnique({
         where: { email: supabaseUser.email! },
@@ -36,29 +76,30 @@ export async function getCurrentUser() {
 
       // Если пользователя нет в Prisma, создаем его
       if (!prismaUser) {
+        console.log("[AUTH] Creating user in Prisma:", supabaseUser.email);
         prismaUser = await prisma.user.create({
           data: {
             email: supabaseUser.email!,
             name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || null,
             image: supabaseUser.user_metadata?.avatar_url || supabaseUser.user_metadata?.picture || null,
-            emailVerified: supabaseUser.email_confirmed_at ? new Date() : null,
+            emailVerified: supabaseUser.email_confirmed_at ? new Date(supabaseUser.email_confirmed_at) : null,
           },
         });
       }
 
+      console.log("[AUTH] Returning user from Supabase getUser:", prismaUser.id);
       return {
         id: prismaUser.id,
         email: prismaUser.email,
         name: prismaUser.name,
         image: prismaUser.image,
       };
+    } else if (userError) {
+      console.log("[AUTH] Supabase getUser error:", userError.message);
     }
   } catch (error) {
-    // Если Supabase не настроен или ошибка, продолжаем с NextAuth
-    // Не логируем ошибки во время сборки
-    if (process.env.NODE_ENV !== "production" || typeof window === "undefined") {
-      // Только в development или если не в браузере
-    }
+    console.error("[AUTH] Error in Supabase auth check:", error);
+    // Продолжаем с NextAuth
   }
 
   // Затем проверяем NextAuth (для email/password)
