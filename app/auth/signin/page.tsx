@@ -23,20 +23,66 @@ function SignInForm() {
     setLoading(true);
     setError("");
 
+    console.log("[SIGNIN] Attempting login with:", { 
+      email: email.trim().toLowerCase(), 
+      passwordLength: password.length 
+    });
+
     try {
+      // Сначала проверяем через тестовый API
+      const testResult = await fetch("/api/test-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password: password,
+        }),
+      }).then((r) => r.json());
+
+      console.log("[SIGNIN] Test password result:", testResult);
+
+      if (!testResult.found) {
+        setError("Foydalanuvchi topilmadi");
+        setLoading(false);
+        return;
+      }
+
+      if (!testResult.hasPassword) {
+        setError("Parol o'rnatilmagan");
+        setLoading(false);
+        return;
+      }
+
+      if (!testResult.passwordValidation.valid.includes("✅")) {
+        setError("Noto'g'ri parol");
+        setLoading(false);
+        return;
+      }
+
+      // Если тест прошел, пробуем войти через NextAuth
+      console.log("[SIGNIN] Test passed, attempting NextAuth signIn");
+      
       const result = await signIn("credentials", {
-        email,
-        password,
+        email: email.trim().toLowerCase(),
+        password: password,
         redirect: false,
       });
 
+      console.log("[SIGNIN] NextAuth result:", result);
+
       if (result?.error) {
+        console.error("[SIGNIN] NextAuth error:", result.error);
         setError("Noto'g'ri email yoki parol");
-      } else {
+      } else if (result?.ok) {
+        console.log("[SIGNIN] Login successful, redirecting to:", callbackUrl);
         router.push(callbackUrl);
         router.refresh();
+      } else {
+        console.error("[SIGNIN] Unexpected result:", result);
+        setError("Xatolik yuz berdi. Qayta urinib ko'ring.");
       }
     } catch (err) {
+      console.error("[SIGNIN] Error:", err);
       setError("Xatolik yuz berdi. Qayta urinib ko'ring.");
     } finally {
       setLoading(false);
