@@ -21,7 +21,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { 
           error: "База данных не настроена",
-          details: "DATABASE_URL не установлен в переменных окружения"
+          details: "DATABASE_URL не установлен в переменных окружения",
+          hint: "Добавьте DATABASE_URL в Vercel → Settings → Environment Variables"
+        },
+        { status: 500 }
+      );
+    }
+
+    // Проверяем формат DATABASE_URL
+    const dbUrl = process.env.DATABASE_URL;
+    const isPooler = dbUrl.includes("pooler.supabase.com");
+    const hasPgbouncer = dbUrl.includes("pgbouncer=true");
+    const hasPort6543 = dbUrl.includes(":6543");
+
+    if (!isPooler || !hasPgbouncer || !hasPort6543) {
+      return NextResponse.json(
+        {
+          error: "Неправильный формат DATABASE_URL",
+          details: "Используйте Connection Pooling URL с портом 6543",
+          currentFormat: {
+            isPooler,
+            hasPgbouncer,
+            hasPort6543,
+          },
+          hint: "Формат должен быть: postgresql://postgres.xxx:password@aws-0-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true"
         },
         { status: 500 }
       );
