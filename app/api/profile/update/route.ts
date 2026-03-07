@@ -18,48 +18,91 @@ export async function POST(request: NextRequest) {
     if (!currentUser?.id) {
       console.log("[API-UPDATE] getCurrentUser failed, trying direct Supabase check...");
       
-      const cookieStore = await cookies();
-      const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            getAll() {
-              return cookieStore.getAll();
-            },
-            // В API routes можно устанавливать cookies
-            setAll(cookiesToSet) {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              );
-            },
-          },
-        }
-      );
-      
-      const { data: { user: supabaseUser }, error: userError } = await supabase.auth.getUser();
-      
-      if (supabaseUser) {
-        console.log("[API-UPDATE] Found user via direct Supabase check:", supabaseUser.email);
+      try {
+        const cookieStore = await cookies();
+        const allCookies = cookieStore.getAll();
+        console.log("[API-UPDATE] Total cookies:", allCookies.length);
         
-        // Находим пользователя в Prisma
-        const prismaUser = await prisma.user.findUnique({
-          where: { email: supabaseUser.email! },
-        });
+        const supabaseCookies = allCookies.filter(c => 
+          c.name.includes('supabase') || c.name.includes('sb-')
+        );
+        console.log("[API-UPDATE] Supabase cookies:", supabaseCookies.length, supabaseCookies.map(c => c.name));
         
-        if (prismaUser) {
-          currentUser = {
-            id: prismaUser.id,
-            email: prismaUser.email,
-            name: prismaUser.name,
-            image: prismaUser.image,
-          };
-          console.log("[API-UPDATE] ✅ User found via Supabase:", currentUser.email);
+        // Создаем response для установки cookies
+        const response = NextResponse.next();
+        
+        const supabase = createServerClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          {
+            cookies: {
+              getAll() {
+                return cookieStore.getAll();
+              },
+              // В API routes можно устанавливать cookies
+              setAll(cookiesToSet) {
+                cookiesToSet.forEach(({ name, value, options }) => {
+                  cookieStore.set(name, value, options);
+                  response.cookies.set(name, value, options);
+                });
+              },
+            },
+          }
+        );
+        
+        // Пробуем getSession сначала
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        console.log("[API-UPDATE] Supabase session:", { hasSession: !!session, error: sessionError?.message });
+        
+        if (session?.user) {
+          console.log("[API-UPDATE] Found user via Supabase session:", session.user.email);
+          
+          // Находим пользователя в Prisma
+          const prismaUser = await prisma.user.findUnique({
+            where: { email: session.user.email! },
+          });
+          
+          if (prismaUser) {
+            currentUser = {
+              id: prismaUser.id,
+              email: prismaUser.email,
+              name: prismaUser.name,
+              image: prismaUser.image,
+            };
+            console.log("[API-UPDATE] ✅ User found via Supabase session:", currentUser.email);
+          } else {
+            console.log("[API-UPDATE] ❌ User not found in Prisma");
+          }
         } else {
-          console.log("[API-UPDATE] ❌ User not found in Prisma");
+          // Пробуем getUser
+          const { data: { user: supabaseUser }, error: userError } = await supabase.auth.getUser();
+          console.log("[API-UPDATE] Supabase getUser:", { hasUser: !!supabaseUser, error: userError?.message });
+          
+          if (supabaseUser) {
+            console.log("[API-UPDATE] Found user via Supabase getUser:", supabaseUser.email);
+            
+            // Находим пользователя в Prisma
+            const prismaUser = await prisma.user.findUnique({
+              where: { email: supabaseUser.email! },
+            });
+            
+            if (prismaUser) {
+              currentUser = {
+                id: prismaUser.id,
+                email: prismaUser.email,
+                name: prismaUser.name,
+                image: prismaUser.image,
+              };
+              console.log("[API-UPDATE] ✅ User found via Supabase getUser:", currentUser.email);
+            } else {
+              console.log("[API-UPDATE] ❌ User not found in Prisma");
+            }
+          } else {
+            console.log("[API-UPDATE] ❌ No Supabase user found");
+          }
         }
-      } else {
-        console.log("[API-UPDATE] ❌ No Supabase user found:", userError?.message);
+      } catch (supabaseError: any) {
+        console.error("[API-UPDATE] Error in Supabase check:", supabaseError.message);
       }
     }
     
