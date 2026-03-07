@@ -25,7 +25,7 @@ export async function uploadImage(formData: FormData) {
 
   // Генерируем уникальное имя файла
   const fileExt = file.name.split(".").pop();
-  const fileName = `${uuidv4()}.${fileExt}`;
+  const fileName = `${randomUUID()}.${fileExt}`;
   const filePath = `listings/${fileName}`;
 
   try {
