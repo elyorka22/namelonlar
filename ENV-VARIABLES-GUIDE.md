@@ -21,15 +21,26 @@
 
 2. **Получите Connection String:**
    - В Supabase Dashboard → ваш проект
-   - Перейдите в **Settings** (шестеренка слева) → **Database**
-   - Прокрутите до секции **"Connection string"**
-   - Выберите вкладку **"Connection pooling"** (важно!)
+   - В **левом меню** найдите **"Settings"** (иконка шестеренки ⚙️)
+   - Нажмите на **"Settings"**
+   - В **подменю** выберите **"Database"** (НЕ "Connection pooling"!)
+   - Прокрутите страницу **вниз** до секции **"Connection string"**
+   - Вы увидите несколько вкладок: **URI**, **JDBC**, **Connection pooling**
+   - Нажмите на вкладку **"Connection pooling"** (важно!)
+   - Выберите режим: **"Transaction"** или **"Session"**
    - Скопируйте строку, которая выглядит так:
      ```
      postgresql://postgres.[PROJECT-REF]:[YOUR-PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true
      ```
    - **Замените `[YOUR-PASSWORD]`** на пароль, который вы создали при создании проекта
    - Это и есть ваш `DATABASE_URL`
+
+### ⚠️ Если не видите Connection string:
+
+- Убедитесь, что вы в разделе **Settings** → **Database** (не Connection pooling)
+- Connection string находится **выше** секции Connection pooling
+- Прокрутите страницу вверх, если не видите
+- Попробуйте другой браузер или очистите кеш
 
 ### Пример:
 ```
