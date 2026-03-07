@@ -25,11 +25,19 @@ export async function getCurrentUser() {
   try {
     const supabase = await createClient();
     
+    // Проверяем cookies для диагностики
+    const cookieStore = await cookies();
+    const allCookies = cookieStore.getAll();
+    const supabaseCookies = allCookies.filter(c => 
+      c.name.includes('supabase') || c.name.includes('sb-')
+    );
+    console.log("[AUTH] Supabase cookies found:", supabaseCookies.length);
+    
     // Пробуем получить сессию (более надежно, чем getUser)
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (session?.user) {
-      console.log("[AUTH] Supabase session found for user:", session.user.email);
+      console.log("[AUTH] ✅ Supabase session found for user:", session.user.email);
       
       // Проверяем, есть ли пользователь в Prisma
       let prismaUser = await prisma.user.findUnique({
@@ -49,7 +57,7 @@ export async function getCurrentUser() {
         });
       }
 
-      console.log("[AUTH] Returning user from Supabase:", prismaUser.id);
+      console.log("[AUTH] ✅ Returning user from Supabase session:", prismaUser.id, prismaUser.email);
       return {
         id: prismaUser.id,
         email: prismaUser.email,
@@ -57,7 +65,10 @@ export async function getCurrentUser() {
         image: prismaUser.image,
       };
     } else if (sessionError) {
-      console.log("[AUTH] Supabase session error:", sessionError.message);
+      console.log("[AUTH] ❌ Supabase session error:", sessionError.message);
+      console.log("[AUTH] Session error code:", sessionError.status);
+    } else {
+      console.log("[AUTH] ⚠️ No Supabase session found");
     }
     
     // Если getSession не сработал, пробуем getUser
@@ -67,7 +78,7 @@ export async function getCurrentUser() {
     } = await supabase.auth.getUser();
 
     if (supabaseUser) {
-      console.log("[AUTH] Supabase user found via getUser:", supabaseUser.email);
+      console.log("[AUTH] ✅ Supabase user found via getUser:", supabaseUser.email);
       
       // Проверяем, есть ли пользователь в Prisma
       let prismaUser = await prisma.user.findUnique({
@@ -87,7 +98,7 @@ export async function getCurrentUser() {
         });
       }
 
-      console.log("[AUTH] Returning user from Supabase getUser:", prismaUser.id);
+      console.log("[AUTH] ✅ Returning user from Supabase getUser:", prismaUser.id, prismaUser.email);
       return {
         id: prismaUser.id,
         email: prismaUser.email,
@@ -95,10 +106,17 @@ export async function getCurrentUser() {
         image: prismaUser.image,
       };
     } else if (userError) {
-      console.log("[AUTH] Supabase getUser error:", userError.message);
+      console.log("[AUTH] ❌ Supabase getUser error:", userError.message);
+      console.log("[AUTH] User error code:", userError.status);
+    } else {
+      console.log("[AUTH] ⚠️ No Supabase user found via getUser");
     }
   } catch (error) {
-    console.error("[AUTH] Error in Supabase auth check:", error);
+    console.error("[AUTH] ❌ Error in Supabase auth check:", error);
+    if (error instanceof Error) {
+      console.error("[AUTH] Error message:", error.message);
+      console.error("[AUTH] Error stack:", error.stack);
+    }
     // Продолжаем с NextAuth
   }
 
