@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { CreateCategoryForm } from "@/components/admin/create-category-form";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminCategoriesPage() {
   const categories = await prisma.category.findMany({
     where: {

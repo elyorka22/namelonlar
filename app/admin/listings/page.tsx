@@ -4,6 +4,8 @@ import { Eye, Check, X, Trash2, Search } from "lucide-react";
 import { formatRelativeTime } from "@/lib/utils";
 import { ListingStatus } from "@prisma/client";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminListingsPage({
   searchParams,
 }: {

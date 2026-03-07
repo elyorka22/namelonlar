@@ -4,6 +4,8 @@ import { Plus, Edit, Trash2, Eye } from "lucide-react";
 import Image from "next/image";
 import { CreateBannerForm } from "@/components/admin/create-banner-form";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminBannersPage() {
   const banners = await prisma.banner.findMany({
     orderBy: {
