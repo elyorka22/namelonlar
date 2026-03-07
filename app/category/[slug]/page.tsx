@@ -3,6 +3,8 @@ import { getCategoryBySlug, getCategories } from "@/lib/data/categories";
 import { getListings } from "@/lib/data/listings";
 import { ListingGrid } from "@/components/listings/listing-grid";
 
+export const dynamic = 'force-dynamic';
+
 interface PageProps {
   params: {
     slug: string;
