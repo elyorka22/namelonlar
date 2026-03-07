@@ -16,18 +16,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Проверяем подключение к базе данных
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json(
+        { 
+          error: "База данных не настроена",
+          details: "DATABASE_URL не установлен в переменных окружения"
+        },
+        { status: 500 }
+      );
+    }
+
     // Нормализуем email
     const normalizedEmail = email.trim().toLowerCase();
 
     // Ищем пользователя
-    const user = await prisma.user.findFirst({
-      where: {
-        email: {
-          equals: normalizedEmail,
-          mode: 'insensitive'
-        }
-      },
-    });
+    let user;
+    try {
+      user = await prisma.user.findFirst({
+        where: {
+          email: {
+            equals: normalizedEmail,
+            mode: 'insensitive'
+          }
+        },
+      });
+    } catch (dbError: any) {
+      console.error("Database error:", dbError);
+      return NextResponse.json(
+        {
+          error: "Ошибка подключения к базе данных",
+          details: dbError.message || "Не удалось подключиться к базе данных",
+          hint: "Проверьте DATABASE_URL в Vercel. Должен быть Connection Pooling URL (порт 6543)"
+        },
+        { status: 500 }
+      );
+    }
 
     if (!user) {
       return NextResponse.json({
