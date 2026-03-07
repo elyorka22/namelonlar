@@ -30,7 +30,15 @@ export async function middleware(request: NextRequest) {
   );
 
   // Обновляем сессию Supabase
-  await supabase.auth.getUser();
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      // Сессия активна, обновляем cookies
+      await supabase.auth.getSession();
+    }
+  } catch (error) {
+    // Игнорируем ошибки - это нормально для неавторизованных пользователей
+  }
 
   return supabaseResponse;
 }
