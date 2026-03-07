@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { Send, Loader2 } from "lucide-react";
 import { formatRelativeTime } from "@/lib/utils";
 
-export default function ChatPage() {
+function ChatContent() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
   const userId = searchParams.get("user");
@@ -162,6 +162,18 @@ export default function ChatPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary-600" size={32} />
+      </div>
+    }>
+      <ChatContent />
+    </Suspense>
   );
 }
 

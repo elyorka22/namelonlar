@@ -2,12 +2,25 @@ import { createClient } from "@/lib/supabase/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
 
 /**
  * Получить текущего пользователя (работает с NextAuth и Supabase)
  * Приоритет: Supabase Auth (для Google OAuth), затем NextAuth (для email/password)
  */
 export async function getCurrentUser() {
+  // Проверяем, есть ли cookies (во время сборки их нет)
+  try {
+    const cookieStore = await cookies();
+    // Если нет cookies, возвращаем null (во время сборки)
+    if (!cookieStore || cookieStore.getAll().length === 0) {
+      return null;
+    }
+  } catch (error) {
+    // Если ошибка при получении cookies (например, во время сборки), возвращаем null
+    return null;
+  }
+
   // Сначала проверяем Supabase Auth (для Google OAuth)
   try {
     const supabase = await createClient();
@@ -42,7 +55,10 @@ export async function getCurrentUser() {
     }
   } catch (error) {
     // Если Supabase не настроен или ошибка, продолжаем с NextAuth
-    console.error("Supabase auth error:", error);
+    // Не логируем ошибки во время сборки
+    if (process.env.NODE_ENV !== "production" || typeof window === "undefined") {
+      // Только в development или если не в браузере
+    }
   }
 
   // Затем проверяем NextAuth (для email/password)
@@ -52,7 +68,10 @@ export async function getCurrentUser() {
       return session.user;
     }
   } catch (error) {
-    console.error("NextAuth error:", error);
+    // Не логируем ошибки во время сборки
+    if (process.env.NODE_ENV !== "production" || typeof window === "undefined") {
+      // Только в development или если не в браузере
+    }
   }
 
   return null;
