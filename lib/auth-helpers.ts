@@ -65,15 +65,20 @@ export async function getCurrentUser() {
   try {
     const session = await getServerSession(authOptions);
     if (session?.user) {
+      console.log("[AUTH] NextAuth session found for user:", session.user.id);
       return session.user;
+    } else {
+      console.log("[AUTH] No NextAuth session found");
     }
   } catch (error) {
+    console.error("[AUTH] Error getting NextAuth session:", error);
     // Не логируем ошибки во время сборки
     if (process.env.NODE_ENV !== "production" || typeof window === "undefined") {
       // Только в development или если не в браузере
     }
   }
 
+  console.log("[AUTH] No user found");
   return null;
 }
 

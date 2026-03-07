@@ -18,32 +18,46 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          console.log("[AUTH] Missing credentials");
           return null;
         }
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+          });
 
-        if (!user || !user.password) {
+          if (!user) {
+            console.log("[AUTH] User not found:", credentials.email);
+            return null;
+          }
+
+          if (!user.password) {
+            console.log("[AUTH] User has no password:", credentials.email);
+            return null;
+          }
+
+          const isPasswordValid = await bcrypt.compare(
+            credentials.password,
+            user.password
+          );
+
+          if (!isPasswordValid) {
+            console.log("[AUTH] Invalid password for:", credentials.email);
+            return null;
+          }
+
+          console.log("[AUTH] Login successful for:", credentials.email, "Role:", user.role);
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+          };
+        } catch (error) {
+          console.error("[AUTH] Error in authorize:", error);
           return null;
         }
-
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-        };
       },
     }),
     GoogleProvider({
@@ -79,6 +93,7 @@ export const authOptions: NextAuthOptions = {
     async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
+        console.log("[AUTH] JWT token updated for user:", user.id);
       }
       if (account) {
         token.accessToken = account.access_token;
@@ -88,6 +103,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user && token.id) {
         session.user.id = token.id as string;
+        console.log("[AUTH] Session created for user:", token.id);
       }
       return session;
     },
