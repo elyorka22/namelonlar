@@ -55,14 +55,20 @@ export const authOptions: NextAuthOptions = {
           if (!user) {
             console.log("[AUTH] User not found:", normalizedEmail);
             // Попробуем найти с оригинальным email (на случай пробелов)
-            const userCaseSensitive = await prisma.user.findFirst({
-              where: { 
-                email: {
-                  equals: credentials.email.trim(),
-                  mode: 'insensitive'
-                }
-              },
-            });
+            let userCaseSensitive;
+            try {
+              userCaseSensitive = await prisma.user.findFirst({
+                where: { 
+                  email: {
+                    equals: credentials.email.trim(),
+                    mode: 'insensitive'
+                  }
+                },
+              });
+            } catch (dbError: any) {
+              console.error("[AUTH] Database error in second query:", dbError.message);
+              return null;
+            }
             
             if (!userCaseSensitive) {
               console.log("[AUTH] User not found even with original email");
