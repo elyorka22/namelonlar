@@ -14,7 +14,15 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
+    console.log("[CALLBACK] Exchange code result:", { 
+      hasUser: !!data.user, 
+      hasError: !!error,
+      errorMessage: error?.message 
+    });
+
     if (!error && data.user) {
+      console.log("[CALLBACK] User authenticated:", data.user.email);
+      
       // Синхронизируем пользователя с Prisma
       try {
         const existingUser = await prisma.user.findUnique({
@@ -22,6 +30,7 @@ export async function GET(request: NextRequest) {
         });
 
         if (!existingUser) {
+          console.log("[CALLBACK] Creating user in Prisma:", data.user.email);
           // Создаем пользователя в Prisma
           await prisma.user.create({
             data: {
@@ -40,6 +49,7 @@ export async function GET(request: NextRequest) {
             },
           });
         } else {
+          console.log("[CALLBACK] Updating user in Prisma:", data.user.email);
           // Обновляем информацию о пользователе
           await prisma.user.update({
             where: { email: data.user.email! },
@@ -59,9 +69,11 @@ export async function GET(request: NextRequest) {
           });
         }
       } catch (error) {
-        console.error("Error syncing user to Prisma:", error);
+        console.error("[CALLBACK] Error syncing user to Prisma:", error);
         // Продолжаем даже если синхронизация не удалась
       }
+    } else if (error) {
+      console.error("[CALLBACK] Error exchanging code:", error.message);
     }
   }
 
@@ -69,6 +81,19 @@ export async function GET(request: NextRequest) {
   // Добавляем параметр для обновления страницы
   const redirectUrl = new URL(next, request.url);
   redirectUrl.searchParams.set("auth", "success");
-  return NextResponse.redirect(redirectUrl);
+  
+  // Создаем ответ с редиректом
+  const response = NextResponse.redirect(redirectUrl);
+  
+  // Убеждаемся, что cookies установлены (Supabase должен был их установить через createClient)
+  // Но явно проверяем сессию еще раз
+  const supabase = await createClient();
+  const { data: { session } } = await supabase.auth.getSession();
+  console.log("[CALLBACK] Final session check:", { 
+    hasSession: !!session, 
+    userEmail: session?.user?.email 
+  });
+  
+  return response;
 }
 
