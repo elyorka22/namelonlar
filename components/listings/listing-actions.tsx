@@ -19,7 +19,7 @@ export function ListingActions({ listingId }: ListingActionsProps) {
       return;
     }
     const result = await toggleFavorite(listingId);
-    if (result.success) {
+    if (result.success && result.isFavorite !== undefined) {
       setIsFavorite(result.isFavorite);
     }
   };

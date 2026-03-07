@@ -110,6 +110,7 @@ export function CreateListingForm({ categories }: CreateListingFormProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
           {images.map((url, index) => (
             <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={url}
                 alt={`Upload ${index + 1}`}
