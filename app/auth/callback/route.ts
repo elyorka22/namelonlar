@@ -1,4 +1,5 @@
-import { createClient } from "@/lib/supabase/server";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
@@ -10,8 +11,29 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
   const next = requestUrl.searchParams.get("next") || "/";
 
+  // В Route Handler можно устанавливать cookies
+  const cookieStore = await cookies();
+  const response = NextResponse.redirect(new URL(next, request.url));
+
   if (code) {
-    const supabase = await createClient();
+    // Создаем клиент с полным доступом к cookies для Route Handler
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+              response.cookies.set(name, value, options);
+            });
+          },
+        },
+      }
+    );
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     console.log("[CALLBACK] Exchange code result:", { 
@@ -77,22 +99,19 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // URL to redirect to after sign in process completes
-  // Добавляем параметр для обновления страницы
-  const redirectUrl = new URL(next, request.url);
-  redirectUrl.searchParams.set("auth", "success");
-  
-  // Создаем ответ с редиректом
-  const response = NextResponse.redirect(redirectUrl);
-  
-  // Убеждаемся, что cookies установлены (Supabase должен был их установить через createClient)
-  // Но явно проверяем сессию еще раз
-  const supabase = await createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  console.log("[CALLBACK] Final session check:", { 
-    hasSession: !!session, 
-    userEmail: session?.user?.email 
-  });
+    // URL to redirect to after sign in process completes
+    // Добавляем параметр для обновления страницы
+    const redirectUrl = new URL(next, request.url);
+    redirectUrl.searchParams.set("auth", "success");
+    response.headers.set("Location", redirectUrl.toString());
+    
+    // Проверяем сессию после обмена кода
+    const { data: { session } } = await supabase.auth.getSession();
+    console.log("[CALLBACK] Final session check:", { 
+      hasSession: !!session, 
+      userEmail: session?.user?.email 
+    });
+  }
   
   return response;
 }
