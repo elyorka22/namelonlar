@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSession, signOut } from "next-auth/react";
+import { signOut as nextAuthSignOut } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
 import { User, Settings, Heart, FileText, LogOut, ChevronDown } from "lucide-react";
 import Image from "next/image";
 
@@ -84,9 +86,15 @@ export function UserMenu({ user }: UserMenuProps) {
                 <span>Sozlamalar</span>
               </Link>
               <button
-                onClick={() => {
+                onClick={async () => {
                   setIsOpen(false);
-                  signOut();
+                  const supabase = createClient();
+                  // Выход из Supabase (для Google OAuth)
+                  await supabase.auth.signOut();
+                  // Выход из NextAuth (для email/password)
+                  await nextAuthSignOut({ redirect: false });
+                  // Перезагружаем страницу
+                  window.location.href = "/";
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left text-red-600"
               >

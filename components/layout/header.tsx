@@ -1,11 +1,10 @@
 import Link from "next/link";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth-helpers";
 import { UserMenu } from "./user-menu";
 import { Plus, Search } from "lucide-react";
 
 export async function Header() {
-  const session = await getServerSession(authOptions);
+  const user = await getCurrentUser();
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
@@ -31,7 +30,7 @@ export async function Header() {
             >
               Kategoriyalar
             </Link>
-            {session ? (
+            {user ? (
               <>
                 <Link
                   href="/listing/new"
@@ -40,7 +39,7 @@ export async function Header() {
                   <Plus size={20} />
                   <span>E'lon joylashtirish</span>
                 </Link>
-                <UserMenu user={session.user} />
+                <UserMenu user={user} />
               </>
             ) : (
               <Link
@@ -53,8 +52,8 @@ export async function Header() {
           </nav>
 
           <div className="md:hidden">
-            {session ? (
-              <UserMenu user={session.user} />
+            {user ? (
+              <UserMenu user={user} />
             ) : (
               <Link
                 href="/auth/signin"
