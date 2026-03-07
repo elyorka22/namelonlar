@@ -12,6 +12,7 @@ export async function getListings(params?: {
 }) {
   try {
     if (!process.env.DATABASE_URL) {
+      console.warn("DATABASE_URL not set, returning empty array");
       return [];
     }
     const where: any = {
@@ -115,6 +116,7 @@ export async function getListingById(id: string) {
 export async function getFeaturedListings() {
   try {
     if (!process.env.DATABASE_URL) {
+      console.warn("DATABASE_URL not set, returning empty array");
       return [];
     }
     const listings = await prisma.listing.findMany({
@@ -156,6 +158,7 @@ export async function getFeaturedListings() {
 export async function getNewListings(limit: number = 12) {
   try {
     if (!process.env.DATABASE_URL) {
+      console.warn("DATABASE_URL not set, returning empty array");
       return [];
     }
     const listings = await prisma.listing.findMany({
