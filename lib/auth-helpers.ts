@@ -30,9 +30,23 @@ export async function getCurrentUser() {
       console.log("[AUTH] Cookie check error (likely build time):", cookieError);
     }
     
-    // Пробуем получить сессию (более надежно, чем getUser)
-    // getSession читает из cookies и обновляет их если нужно
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    // Согласно документации Supabase SSR, getUser() более надежен для проверки авторизации
+    // Но сначала пробуем getSession() для чтения из cookies
+    let { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    // Если getSession не нашел сессию, пробуем getUser() (он может обновить токен)
+    if (!session?.user && !sessionError) {
+      console.log("[AUTH] No session from getSession, trying getUser()...");
+      const { data: { user: fallbackUser }, error: fallbackError } = await supabase.auth.getUser();
+      if (fallbackUser) {
+        console.log("[AUTH] ✅ Found user via getUser() fallback:", fallbackUser.email);
+        // Если getUser нашел пользователя, получаем полную сессию
+        const { data: { session: fallbackSession } } = await supabase.auth.getSession();
+        if (fallbackSession?.user) {
+          session = fallbackSession;
+        }
+      }
+    }
     
     if (session?.user) {
       console.log("[AUTH] ✅ Supabase session found for user:", session.user.email);

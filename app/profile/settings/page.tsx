@@ -8,21 +8,30 @@ import { Lock, User } from "lucide-react";
 export const dynamic = 'force-dynamic';
 
 export default async function ProfileSettingsPage() {
-  // Пробуем получить пользователя с небольшой задержкой для синхронизации cookies
-  let currentUser = await getCurrentUser();
-  console.log("[PROFILE-SETTINGS] First getCurrentUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
+  // Получаем пользователя
+  const currentUser = await getCurrentUser();
+  console.log("[PROFILE-SETTINGS] getCurrentUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
   
-  // Если пользователь не найден, пробуем еще раз (возможно cookies еще не синхронизировались)
+  // Детальная диагностика если пользователь не найден
   if (!currentUser?.id) {
-    console.log("[PROFILE-SETTINGS] User not found on first try, retrying...");
-    // Небольшая задержка для синхронизации cookies после middleware
-    await new Promise(resolve => setTimeout(resolve, 100));
-    currentUser = await getCurrentUser();
-    console.log("[PROFILE-SETTINGS] Second getCurrentUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
-  }
-  
-  if (!currentUser?.id) {
-    console.log("[PROFILE-SETTINGS] No user found after retry, redirecting to signin");
+    console.log("[PROFILE-SETTINGS] ❌ No user found");
+    
+    // Проверяем cookies напрямую для диагностики
+    try {
+      const cookieStore = await cookies();
+      const allCookies = cookieStore.getAll();
+      const supabaseCookies = allCookies.filter(c => 
+        c.name.includes('supabase') || c.name.includes('sb-')
+      );
+      console.log("[PROFILE-SETTINGS] Cookie diagnostic:", {
+        totalCookies: allCookies.length,
+        supabaseCookies: supabaseCookies.length,
+        cookieNames: supabaseCookies.map(c => c.name)
+      });
+    } catch (error) {
+      console.error("[PROFILE-SETTINGS] Error checking cookies:", error);
+    }
+    
     redirect("/auth/signin");
   }
 
