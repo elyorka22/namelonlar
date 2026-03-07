@@ -62,13 +62,23 @@ export function UserMenu({ user }: UserMenuProps) {
             </div>
             <div className="py-2">
               <button
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   setIsOpen(false);
                   console.log("[USERMENU] Navigating to /profile");
-                  // Используем window.location для надежной навигации
-                  window.location.href = "/profile";
+                  
+                  // Проверяем сессию перед навигацией
+                  const supabase = createClient();
+                  const { data: { session }, error } = await supabase.auth.getSession();
+                  
+                  if (session?.user) {
+                    console.log("[USERMENU] Session confirmed, navigating to profile");
+                    window.location.href = "/profile";
+                  } else {
+                    console.error("[USERMENU] No session found, redirecting to signin");
+                    window.location.href = "/auth/signin";
+                  }
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
@@ -102,12 +112,23 @@ export function UserMenu({ user }: UserMenuProps) {
                 <span>Sevimlilar</span>
               </button>
               <button
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   setIsOpen(false);
                   console.log("[USERMENU] Navigating to /profile/settings");
-                  window.location.href = "/profile/settings";
+                  
+                  // Проверяем сессию перед навигацией
+                  const supabase = createClient();
+                  const { data: { session }, error } = await supabase.auth.getSession();
+                  
+                  if (session?.user) {
+                    console.log("[USERMENU] Session confirmed, navigating to settings");
+                    window.location.href = "/profile/settings";
+                  } else {
+                    console.error("[USERMENU] No session found, redirecting to signin");
+                    window.location.href = "/auth/signin";
+                  }
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
