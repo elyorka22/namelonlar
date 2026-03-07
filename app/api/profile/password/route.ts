@@ -29,9 +29,6 @@ export async function POST(request: NextRequest) {
         );
         console.log("[API-PASSWORD] Supabase cookies:", supabaseCookies.length, supabaseCookies.map(c => c.name));
         
-        // Создаем response для установки cookies
-        const response = NextResponse.next();
-        
         const supabase = createServerClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -44,7 +41,6 @@ export async function POST(request: NextRequest) {
               setAll(cookiesToSet) {
                 cookiesToSet.forEach(({ name, value, options }) => {
                   cookieStore.set(name, value, options);
-                  response.cookies.set(name, value, options);
                 });
               },
             },
