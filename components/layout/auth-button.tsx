@@ -57,21 +57,40 @@ export function AuthButton() {
 
   // Проверяем сессию при изменении пути (например, после callback)
   useEffect(() => {
-    if (pathname === "/" || pathname.startsWith("/auth/callback")) {
-      const supabase = createClient();
-      const checkUser = async () => {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user && !supabaseUser) {
+    const supabase = createClient();
+    
+    // Проверяем сессию при монтировании и при изменении пути
+    const checkUser = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error("Error getting user:", error);
+        }
+        if (user) {
           setSupabaseUser(user);
           setLoading(false);
-          router.refresh();
+        } else if (!user && supabaseUser) {
+          // Если пользователь вышел
+          setSupabaseUser(null);
+          setLoading(false);
         }
-      };
-      // Небольшая задержка для того, чтобы cookies успели установиться
-      const timeout = setTimeout(checkUser, 500);
+      } catch (error) {
+        console.error("Error checking user:", error);
+      }
+    };
+
+    // Проверяем сразу
+    checkUser();
+
+    // Если мы на главной странице или после callback, проверяем еще раз через небольшую задержку
+    if (pathname === "/" || pathname.includes("auth")) {
+      const timeout = setTimeout(() => {
+        checkUser();
+        router.refresh();
+      }, 1000);
       return () => clearTimeout(timeout);
     }
-  }, [pathname, supabaseUser, router]);
+  }, [pathname, router]);
 
   // Определяем текущего пользователя (приоритет Supabase, затем NextAuth)
   const user = supabaseUser
