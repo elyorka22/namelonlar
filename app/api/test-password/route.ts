@@ -66,11 +66,52 @@ export async function POST(request: NextRequest) {
       });
     } catch (dbError: any) {
       console.error("Database error:", dbError);
+      const errorMessage = dbError.message || "Не удалось подключиться к базе данных";
+      
+      // Детальная диагностика ошибки
+      let diagnosticInfo = {
+        errorType: "unknown",
+        suggestions: [] as string[],
+      };
+
+      if (errorMessage.includes("Tenant or user not found")) {
+        diagnosticInfo.errorType = "authentication";
+        diagnosticInfo.suggestions = [
+          "Проверьте пароль в DATABASE_URL - он может быть неправильным",
+          "Проверьте, что проект Supabase активен (не приостановлен)",
+          "Попробуйте сбросить пароль базы данных в Supabase",
+          "Убедитесь, что DATABASE_URL установлен для всех окружений (Production, Preview, Development)",
+        ];
+      } else if (errorMessage.includes("Connection refused") || errorMessage.includes("ECONNREFUSED")) {
+        diagnosticInfo.errorType = "connection";
+        diagnosticInfo.suggestions = [
+          "Проверьте, что используете Connection Pooling URL (порт 6543)",
+          "Проверьте, что проект Supabase активен",
+          "Проверьте регион в URL (должен совпадать с регионом проекта)",
+        ];
+      } else if (errorMessage.includes("timeout")) {
+        diagnosticInfo.errorType = "timeout";
+        diagnosticInfo.suggestions = [
+          "Проверьте, что Connection Pooling включен в Supabase",
+          "Проверьте, что используете правильный URL (pooler.supabase.com)",
+        ];
+      }
+
       return NextResponse.json(
         {
           error: "Ошибка подключения к базе данных",
-          details: dbError.message || "Не удалось подключиться к базе данных",
-          hint: "Проверьте DATABASE_URL в Vercel. Должен быть Connection Pooling URL (порт 6543)"
+          details: errorMessage,
+          diagnostic: diagnosticInfo,
+          hint: "Проверьте DATABASE_URL в Vercel. Должен быть Connection Pooling URL (порт 6543)",
+          dbUrlConfigured: !!process.env.DATABASE_URL,
+          dbUrlFormat: process.env.DATABASE_URL 
+            ? {
+                hasPooler: process.env.DATABASE_URL.includes("pooler.supabase.com"),
+                hasPgbouncer: process.env.DATABASE_URL.includes("pgbouncer=true"),
+                hasPort6543: process.env.DATABASE_URL.includes(":6543"),
+                host: process.env.DATABASE_URL.match(/@([^\/]+)\//)?.[1] || "unknown",
+              }
+            : null,
         },
         { status: 500 }
       );
