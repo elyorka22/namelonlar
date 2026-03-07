@@ -19,14 +19,22 @@ export async function POST(request: NextRequest) {
       console.log("[API-UPDATE] getCurrentUser failed, trying direct Supabase check...");
       
       try {
-        const cookieStore = await cookies();
-        const allCookies = cookieStore.getAll();
-        console.log("[API-UPDATE] Total cookies:", allCookies.length);
+        // Пробуем использовать cookies из request напрямую
+        const requestCookies = request.cookies.getAll();
+        console.log("[API-UPDATE] Request cookies:", requestCookies.length);
         
-        const supabaseCookies = allCookies.filter(c => 
+        const supabaseCookies = requestCookies.filter(c => 
           c.name.includes('supabase') || c.name.includes('sb-')
         );
-        console.log("[API-UPDATE] Supabase cookies:", supabaseCookies.length, supabaseCookies.map(c => c.name));
+        console.log("[API-UPDATE] Supabase cookies in request:", supabaseCookies.length, supabaseCookies.map(c => c.name));
+        
+        // Также пробуем через cookies()
+        const cookieStore = await cookies();
+        const allCookies = cookieStore.getAll();
+        console.log("[API-UPDATE] Cookies() total:", allCookies.length);
+        
+        // Создаем response для установки cookies
+        const response = NextResponse.next();
         
         const supabase = createServerClient(
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,12 +42,14 @@ export async function POST(request: NextRequest) {
           {
             cookies: {
               getAll() {
-                return cookieStore.getAll();
+                // Пробуем сначала request cookies, потом cookies()
+                return requestCookies.length > 0 ? requestCookies : cookieStore.getAll();
               },
               // В API routes можно устанавливать cookies
               setAll(cookiesToSet) {
                 cookiesToSet.forEach(({ name, value, options }) => {
                   cookieStore.set(name, value, options);
+                  response.cookies.set(name, value, options);
                 });
               },
             },
