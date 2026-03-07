@@ -66,6 +66,9 @@ export async function GET(request: NextRequest) {
   }
 
   // URL to redirect to after sign in process completes
-  return NextResponse.redirect(new URL(next, request.url));
+  // Добавляем параметр для обновления страницы
+  const redirectUrl = new URL(next, request.url);
+  redirectUrl.searchParams.set("auth", "success");
+  return NextResponse.redirect(redirectUrl);
 }
 
