@@ -9,6 +9,7 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
   secret: process.env.NEXTAUTH_SECRET,
   debug: process.env.NODE_ENV === "development",
+  trustHost: true,
   providers: [
     CredentialsProvider({
       name: "Email",
@@ -60,17 +61,46 @@ export const authOptions: NextAuthOptions = {
     strategy: "jwt",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async signIn({ user, account, profile }) {
+      if (account?.provider === "google") {
+        try {
+          // PrismaAdapter автоматически создаст пользователя, но проверим на ошибки
+          if (!user.email) {
+            console.error("Google OAuth: No email provided");
+            return false;
+          }
+          return true;
+        } catch (error) {
+          console.error("Error in signIn callback:", error);
+          return false;
+        }
+      }
+      return true;
+    },
+    async jwt({ token, user, account }) {
       if (user) {
         token.id = user.id;
+      }
+      if (account) {
+        token.accessToken = account.access_token;
       }
       return token;
     },
     async session({ session, token }) {
-      if (session.user) {
+      if (session.user && token.id) {
         session.user.id = token.id as string;
       }
       return session;
+    },
+    async redirect({ url, baseUrl }) {
+      // Убеждаемся, что redirect использует правильный baseUrl
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+      if (url.startsWith(baseUrl)) {
+        return url;
+      }
+      return baseUrl;
     },
   },
 };
