@@ -29,38 +29,51 @@ function SignInForm() {
     });
 
     try {
-      // Сначала проверяем через тестовый API
-      const testResult = await fetch("/api/test-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          password: password,
-        }),
-      }).then((r) => r.json());
+      // Пробуем предварительную проверку пароля через API (необязательно)
+      // Если API недоступен, просто пропускаем проверку и идем к NextAuth
+      let testResult = null;
+      try {
+        const testResponse = await fetch("/api/test-password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: email.trim().toLowerCase(),
+            password: password,
+          }),
+        });
+        
+        if (testResponse.ok) {
+          testResult = await testResponse.json();
+          console.log("[SIGNIN] Test password result:", testResult);
 
-      console.log("[SIGNIN] Test password result:", testResult);
+          if (!testResult.found) {
+            setError("Foydalanuvchi topilmadi");
+            setLoading(false);
+            return;
+          }
 
-      if (!testResult.found) {
-        setError("Foydalanuvchi topilmadi");
-        setLoading(false);
-        return;
+          if (!testResult.hasPassword) {
+            setError("Parol o'rnatilmagan. Profil sozlamalarida parol o'rnating.");
+            setLoading(false);
+            return;
+          }
+
+          if (testResult.passwordValidation?.valid && !testResult.passwordValidation.valid.includes("✅")) {
+            setError("Noto'g'ri parol");
+            setLoading(false);
+            return;
+          }
+        } else {
+          // Если API вернул ошибку, просто логируем и продолжаем
+          console.warn("[SIGNIN] Test password API returned error, skipping validation");
+        }
+      } catch (testError) {
+        // Если API недоступен, просто пропускаем проверку
+        console.warn("[SIGNIN] Test password API unavailable, proceeding with NextAuth:", testError);
       }
 
-      if (!testResult.hasPassword) {
-        setError("Parol o'rnatilmagan");
-        setLoading(false);
-        return;
-      }
-
-      if (!testResult.passwordValidation.valid.includes("✅")) {
-        setError("Noto'g'ri parol");
-        setLoading(false);
-        return;
-      }
-
-      // Если тест прошел, пробуем войти через NextAuth
-      console.log("[SIGNIN] Test passed, attempting NextAuth signIn");
+      // Пробуем войти через NextAuth
+      console.log("[SIGNIN] Attempting NextAuth signIn");
       
       const result = await signIn("credentials", {
         email: email.trim().toLowerCase(),
