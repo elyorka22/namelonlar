@@ -18,10 +18,27 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const loadMessages = async () => {
+    if (!userId || !session) return;
+
+    try {
+      const response = await fetch(`/api/chat?userId=${userId}&listingId=${listingId || ""}`);
+      if (response.ok) {
+        const data = await response.json();
+        setMessages(data.messages || []);
+      }
+    } catch (error) {
+      console.error("Error loading messages:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (userId && session) {
       loadMessages();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, session]);
 
   useEffect(() => {
