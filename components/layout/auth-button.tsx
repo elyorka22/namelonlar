@@ -21,14 +21,25 @@ export function AuthButton() {
     
     const checkUser = async () => {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser();
+        // Используем getSession вместо getUser для более надежной проверки
+        const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
-          console.error("Error getting user:", error);
+          // Игнорируем ошибки отсутствия сессии - это нормально для неавторизованных пользователей
+          if (error.message !== "Auth session missing!") {
+            console.error("Error getting session:", error);
+          }
+          setSupabaseUser(null);
+          setLoading(false);
+          return;
         }
-        setSupabaseUser(user);
+        setSupabaseUser(session?.user ?? null);
         setLoading(false);
-      } catch (error) {
-        console.error("Error checking user:", error);
+      } catch (error: any) {
+        // Игнорируем ошибки отсутствия сессии
+        if (error?.message !== "Auth session missing!") {
+          console.error("Error checking user:", error);
+        }
+        setSupabaseUser(null);
         setLoading(false);
       }
     };
@@ -39,7 +50,12 @@ export function AuthButton() {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session?.user?.email);
+      // Игнорируем INITIAL_SESSION если сессии нет
+      if (event === "INITIAL_SESSION" && !session) {
+        setLoading(false);
+        return;
+      }
+      
       setSupabaseUser(session?.user ?? null);
       setLoading(false);
       
@@ -48,7 +64,7 @@ export function AuthButton() {
         // Небольшая задержка для синхронизации с сервером
         setTimeout(() => {
           router.refresh();
-        }, 100);
+        }, 500);
       }
     });
 
@@ -62,35 +78,36 @@ export function AuthButton() {
     // Проверяем сессию при монтировании и при изменении пути
     const checkUser = async () => {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error) {
-          console.error("Error getting user:", error);
+        const { data: { session }, error } = await supabase.auth.getSession();
+        // Игнорируем ошибки отсутствия сессии
+        if (error && error.message !== "Auth session missing!") {
+          console.error("Error getting session:", error);
         }
-        if (user) {
-          setSupabaseUser(user);
+        if (session?.user) {
+          setSupabaseUser(session.user);
           setLoading(false);
-        } else if (!user && supabaseUser) {
+        } else if (!session && supabaseUser) {
           // Если пользователь вышел
           setSupabaseUser(null);
           setLoading(false);
         }
-      } catch (error) {
-        console.error("Error checking user:", error);
+      } catch (error: any) {
+        // Игнорируем ошибки отсутствия сессии
+        if (error?.message !== "Auth session missing!") {
+          console.error("Error checking user:", error);
+        }
       }
     };
 
-    // Проверяем сразу
-    checkUser();
-
-    // Если мы на главной странице или после callback, проверяем еще раз через небольшую задержку
+    // Если мы на главной странице или после callback, проверяем через задержку
     if (pathname === "/" || pathname.includes("auth")) {
       const timeout = setTimeout(() => {
         checkUser();
         router.refresh();
-      }, 1000);
+      }, 1500);
       return () => clearTimeout(timeout);
     }
-  }, [pathname, router]);
+  }, [pathname, router, supabaseUser]);
 
   // Определяем текущего пользователя (приоритет Supabase, затем NextAuth)
   const user = supabaseUser
