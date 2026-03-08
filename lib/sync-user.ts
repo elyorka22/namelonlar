@@ -54,19 +54,20 @@ export async function syncUserFromSupabase(supabaseUser: User): Promise<{
       };
     }
 
-    // Пользователя нет, создаем его
+    // Пользователя нет, создаем его (id из Supabase — один id для Auth и Prisma)
     try {
       prismaUser = await prisma.user.create({
         data: {
+          id: supabaseUser.id,
           email: email,
-          name: supabaseUser.user_metadata?.full_name || 
-                supabaseUser.user_metadata?.name || 
+          name: supabaseUser.user_metadata?.full_name ||
+                supabaseUser.user_metadata?.name ||
                 null,
-          image: supabaseUser.user_metadata?.avatar_url || 
-                 supabaseUser.user_metadata?.picture || 
+          image: supabaseUser.user_metadata?.avatar_url ||
+                 supabaseUser.user_metadata?.picture ||
                  null,
-          emailVerified: supabaseUser.email_confirmed_at 
-            ? new Date(supabaseUser.email_confirmed_at) 
+          emailVerified: supabaseUser.email_confirmed_at
+            ? new Date(supabaseUser.email_confirmed_at)
             : null,
         },
       });

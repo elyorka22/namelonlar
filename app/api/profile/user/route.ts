@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const currentUser = await requireAuth();
 
     // Получаем данные пользователя из Prisma (если есть)
-    const userData = await getUserData(currentUser.id);
+    const userData = await getUserData(currentUser.id, currentUser.email);
     
     // Если пользователя нет в Prisma, возвращаем данные из Supabase
     if (!userData) {

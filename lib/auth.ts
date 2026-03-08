@@ -41,31 +41,39 @@ export async function getCurrentUser() {
     const { data: { session } } = await supabase.auth.getSession();
     
     if (session?.user) {
-      // Синхронизируем с Prisma асинхронно (не блокируем)
       syncUserFromSupabase(session.user).catch((error) => {
         console.error("[AUTH] Sync error (non-blocking):", error);
       });
-      
+      const role = (session.user.app_metadata?.role as string) || "USER";
       return {
         id: session.user.id,
         email: session.user.email!,
-        name: session.user.user_metadata?.full_name || 
-              session.user.user_metadata?.name || 
+        name: session.user.user_metadata?.full_name ||
+              session.user.user_metadata?.name ||
               null,
-        image: session.user.user_metadata?.avatar_url || 
-               session.user.user_metadata?.picture || 
+        image: session.user.user_metadata?.avatar_url ||
+               session.user.user_metadata?.picture ||
                null,
+        role: role === "ADMIN" || role === "MODERATOR" ? role : "USER",
       };
     }
   } catch (error) {
     console.error("[AUTH] Error checking Supabase session:", error);
   }
 
-  // 2. Проверяем NextAuth (для email/password)
+  // 2. NextAuth (email/password) — роль из Prisma
   try {
     const session = await getServerSession(authOptions);
     if (session?.user) {
-      return session.user;
+      const prismaUser = await prisma.user.findUnique({
+        where: { id: session.user.id },
+        select: { role: true },
+      });
+      const role = prismaUser?.role === "ADMIN" || prismaUser?.role === "MODERATOR" ? prismaUser.role : "USER";
+      return {
+        ...session.user,
+        role,
+      };
     }
   } catch (error) {
     console.error("[AUTH] Error checking NextAuth session:", error);
@@ -113,30 +121,41 @@ export async function isAdmin(userId: string): Promise<boolean> {
   }
 }
 
+/** Пользователь с опциональной ролью (из Supabase app_metadata или Prisma) */
+export type UserWithRole = { id: string; email?: string | null; name?: string | null; image?: string | null; role?: string };
+
 /**
  * Проверить, может ли пользователь заходить в админ-панель (ADMIN или MODERATOR).
- * Ищет пользователя по email (для Supabase Auth, т.к. id в Prisma может быть CUID),
- * при отсутствии email — по id.
+ * Роль берётся из переданного user.role (Supabase app_metadata) — без запроса в Prisma.
+ * Если role нет на user — fallback в Prisma по email/id (для NextAuth).
  */
 export async function isAdminOrModerator(
-  userId: string,
+  userOrId: UserWithRole | string,
   email?: string | null
 ): Promise<boolean> {
+  const role = typeof userOrId === "object" ? userOrId.role : undefined;
+  if (role === "ADMIN" || role === "MODERATOR") {
+    return true;
+  }
+  if (typeof userOrId === "object" && role !== undefined) {
+    return false;
+  }
+  const userId = typeof userOrId === "object" ? userOrId.id : userOrId;
   try {
-    let user = null;
+    let prismaUser = null;
     if (email) {
-      user = await prisma.user.findUnique({
+      prismaUser = await prisma.user.findUnique({
         where: { email },
         select: { role: true },
       });
     }
-    if (!user) {
-      user = await prisma.user.findUnique({
+    if (!prismaUser) {
+      prismaUser = await prisma.user.findUnique({
         where: { id: userId },
         select: { role: true },
       });
     }
-    return user?.role === "ADMIN" || user?.role === "MODERATOR";
+    return prismaUser?.role === "ADMIN" || prismaUser?.role === "MODERATOR";
   } catch (error) {
     console.error("[AUTH] Error checking admin/moderator role:", error);
     return false;
@@ -145,35 +164,31 @@ export async function isAdminOrModerator(
 
 /**
  * Требовать авторизацию и роль администратора
- * 
- * @returns Авторизованный администратор
- * @throws AuthError если пользователь не авторизован или не администратор
+ * Роль берётся из user.role (Supabase app_metadata), без запроса в Prisma при наличии.
  */
 export async function requireAdmin() {
-  const user = await requireAuth();
-  
+  const user = await requireAuth() as UserWithRole;
+  if (user.role === "ADMIN" || user.role === "MODERATOR") {
+    return user;
+  }
   const admin = await isAdmin(user.id);
   if (!admin) {
     throw new AuthError("Forbidden: Admin access required");
   }
-  
   return user;
 }
 
 /**
- * Получить данные пользователя из Prisma
- * 
- * Используется для получения расширенных данных (объявления, настройки и т.д.)
- * НЕ используется для проверки авторизации
- * 
- * @param userId ID пользователя
- * @returns Данные пользователя из Prisma или null
+ * Получить данные пользователя из Prisma (для профиля, объявлений и т.д.)
+ * Сначала поиск по id, при отсутствии — по email (для пользователей Supabase со старым CUID в Prisma).
  */
-export async function getUserData(userId: string) {
+export async function getUserData(userId: string, email?: string | null) {
   try {
-    return await prisma.user.findUnique({
-      where: { id: userId },
-    });
+    let user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user && email) {
+      user = await prisma.user.findUnique({ where: { email } });
+    }
+    return user;
   } catch (error) {
     console.error("[AUTH] Error getting user data:", error);
     return null;

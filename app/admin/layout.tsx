@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { 
   LayoutDashboard, 
@@ -24,21 +23,8 @@ export default async function AdminLayout({
     redirect("/auth/signin");
   }
 
-  let user = null;
-  if (currentUser.email) {
-    user = await prisma.user.findUnique({
-      where: { email: currentUser.email },
-      select: { role: true },
-    });
-  }
-  if (!user) {
-    user = await prisma.user.findUnique({
-      where: { id: currentUser.id },
-      select: { role: true },
-    });
-  }
-
-  if (user?.role !== "ADMIN" && user?.role !== "MODERATOR") {
+  const role = (currentUser as { role?: string }).role;
+  if (role !== "ADMIN" && role !== "MODERATOR") {
     redirect("/");
   }
 

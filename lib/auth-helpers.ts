@@ -22,15 +22,17 @@ export async function getSupabaseUser() {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (session?.user) {
+      const role = (session.user.app_metadata?.role as string) || "USER";
       return {
         id: session.user.id,
         email: session.user.email!,
-        name: session.user.user_metadata?.full_name || 
-              session.user.user_metadata?.name || 
+        name: session.user.user_metadata?.full_name ||
+              session.user.user_metadata?.name ||
               null,
-        image: session.user.user_metadata?.avatar_url || 
-               session.user.user_metadata?.picture || 
+        image: session.user.user_metadata?.avatar_url ||
+               session.user.user_metadata?.picture ||
                null,
+        role: role === "ADMIN" || role === "MODERATOR" ? role : "USER",
       };
     }
     
@@ -82,7 +84,16 @@ export async function getCurrentUser() {
     const session = await getServerSession(authOptions);
     if (session?.user) {
       console.log("[AUTH] NextAuth session found for user:", session.user.id);
-      return session.user;
+      const nextAuthUser = session.user as { id: string; email?: string | null; name?: string | null; image?: string | null };
+      const prismaUser = await prisma.user.findUnique({
+        where: { id: nextAuthUser.id },
+        select: { role: true },
+      });
+      const role = prismaUser?.role === "ADMIN" || prismaUser?.role === "MODERATOR" ? prismaUser.role : "USER";
+      return {
+        ...nextAuthUser,
+        role,
+      };
     } else {
       console.log("[AUTH] No NextAuth session found");
     }
