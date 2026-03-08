@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, getSupabaseUser } from "@/lib/auth-helpers";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { syncUserFromSupabase } from "@/lib/sync-user";
