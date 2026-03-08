@@ -31,12 +31,12 @@ export function ListingGrid({ listings }: ListingGridProps) {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
       {listings.map((listing) => (
         <Link
           key={listing.id}
           href={`/listing/${listing.id}`}
-          className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-200 border border-gray-100"
+          className="group bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 hover:border-primary-300"
         >
           <div className="relative aspect-square bg-gray-100 overflow-hidden">
             {listing.images && listing.images.length > 0 ? (
@@ -45,49 +45,44 @@ export function ListingGrid({ listings }: ListingGridProps) {
                 alt={listing.title}
                 fill
                 className="object-cover group-hover:scale-105 transition-transform duration-300"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-400">
-                <span className="text-4xl">📦</span>
+                <span className="text-3xl">📦</span>
               </div>
             )}
             {listing.isVip && (
-              <div className="absolute top-2 left-2 bg-primary-500 text-white px-2 py-1 rounded text-xs font-bold">
+              <div className="absolute top-1.5 left-1.5 bg-primary-500 text-white px-1.5 py-0.5 rounded text-xs font-bold">
                 VIP
               </div>
             )}
             {listing.isTop && (
-              <div className="absolute top-2 right-2 bg-yellow-500 text-white px-2 py-1 rounded text-xs font-bold">
+              <div className="absolute top-1.5 right-1.5 bg-yellow-500 text-white px-1.5 py-0.5 rounded text-xs font-bold">
                 TOP
               </div>
             )}
           </div>
-          <div className="p-4">
-            <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-primary-600 transition-colors">
+          <div className="p-2 md:p-3">
+            <h3 className="font-medium text-gray-900 mb-1.5 line-clamp-2 text-sm md:text-base group-hover:text-primary-600 transition-colors">
               {listing.title}
             </h3>
             {listing.price !== null && (
-              <p className="text-2xl font-bold text-primary-600 mb-2">
+              <p className="text-lg md:text-xl font-bold text-primary-600 mb-1.5">
                 {formatPrice(listing.price, listing.currency)}
               </p>
             )}
-            <div className="flex items-center gap-4 text-sm text-gray-500">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
               {listing.location && (
-                <div className="flex items-center gap-1">
-                  <MapPin size={14} />
+                <div className="flex items-center gap-1 flex-1 min-w-0">
+                  <MapPin size={12} className="flex-shrink-0" />
                   <span className="truncate">{listing.location}</span>
                 </div>
               )}
-              <div className="flex items-center gap-1">
-                <Eye size={14} />
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Eye size={12} />
                 <span>{listing.views}</span>
               </div>
-            </div>
-            <div className="mt-2">
-              <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">
-                {listing.category.name}
-              </span>
             </div>
           </div>
         </Link>
