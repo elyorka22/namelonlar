@@ -114,7 +114,7 @@ export async function syncUserFromSupabase(supabaseUser: User): Promise<{
 export async function syncUserWithRetry(
   supabaseUser: User,
   maxRetries: number = 3
-): Promise<{ success: boolean; user: any }> {
+): Promise<{ success: boolean; user: any; created: boolean; error?: string }> {
   let lastError: any = null;
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -137,6 +137,8 @@ export async function syncUserWithRetry(
   return {
     success: false,
     user: null,
+    created: false,
+    error: lastError,
   };
 }
 
