@@ -114,14 +114,28 @@ export async function isAdmin(userId: string): Promise<boolean> {
 }
 
 /**
- * Проверить, может ли пользователь заходить в админ-панель (ADMIN или MODERATOR)
+ * Проверить, может ли пользователь заходить в админ-панель (ADMIN или MODERATOR).
+ * Ищет пользователя по email (для Supabase Auth, т.к. id в Prisma может быть CUID),
+ * при отсутствии email — по id.
  */
-export async function isAdminOrModerator(userId: string): Promise<boolean> {
+export async function isAdminOrModerator(
+  userId: string,
+  email?: string | null
+): Promise<boolean> {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { role: true },
-    });
+    let user = null;
+    if (email) {
+      user = await prisma.user.findUnique({
+        where: { email },
+        select: { role: true },
+      });
+    }
+    if (!user) {
+      user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true },
+      });
+    }
     return user?.role === "ADMIN" || user?.role === "MODERATOR";
   } catch (error) {
     console.error("[AUTH] Error checking admin/moderator role:", error);

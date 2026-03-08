@@ -24,10 +24,19 @@ export default async function AdminLayout({
     redirect("/auth/signin");
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: currentUser.id },
-    select: { role: true },
-  });
+  let user = null;
+  if (currentUser.email) {
+    user = await prisma.user.findUnique({
+      where: { email: currentUser.email },
+      select: { role: true },
+    });
+  }
+  if (!user) {
+    user = await prisma.user.findUnique({
+      where: { id: currentUser.id },
+      select: { role: true },
+    });
+  }
 
   if (user?.role !== "ADMIN" && user?.role !== "MODERATOR") {
     redirect("/");

@@ -7,7 +7,7 @@ import { isAdminOrModerator } from "@/lib/auth";
 export async function Header() {
   const currentUser = await getCurrentUser();
   const showAdminButton = currentUser?.id
-    ? await isAdminOrModerator(currentUser.id)
+    ? await isAdminOrModerator(currentUser.id, currentUser.email)
     : false;
 
   return (
