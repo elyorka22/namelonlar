@@ -18,8 +18,7 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
   const pathname = usePathname();
   const [supabaseUser, setSupabaseUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  // Роль запрашиваем один раз с клиента — тогда кнопка админки не мигает при навигации
-  const [clientIsAdmin, setClientIsAdmin] = useState<boolean | null>(null);
+  const [hasSeenAdmin, setHasSeenAdmin] = useState(false);
 
   useEffect(() => {
     // Проверяем Supabase сессию
@@ -77,33 +76,13 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
     return () => subscription.unsubscribe();
   }, [router]);
 
-  // Сброс роли при выходе
   useEffect(() => {
-    if (!supabaseUser && !session?.user) {
-      setClientIsAdmin(null);
-    }
+    if (isAdmin) setHasSeenAdmin(true);
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!supabaseUser && !session?.user) setHasSeenAdmin(false);
   }, [supabaseUser, session?.user]);
-
-  // Один раз запрашиваем роль с сервера — результат не меняется до выхода, кнопка не мигает
-  useEffect(() => {
-    if (loading || (!supabaseUser && !session?.user)) return;
-    if (clientIsAdmin !== null) return;
-
-    let cancelled = false;
-    fetch("/api/auth/role")
-      .then((res) => res.json())
-      .then((data: { isAdmin?: boolean }) => {
-        if (!cancelled && typeof data.isAdmin === "boolean") {
-          setClientIsAdmin(data.isAdmin);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setClientIsAdmin(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [loading, supabaseUser, session?.user, clientIsAdmin]);
 
   // Проверяем сессию при изменении пути (например, после callback)
   useEffect(() => {
@@ -153,10 +132,10 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
       }
     : session?.user || null;
 
-  const showAdmin = clientIsAdmin === true || (clientIsAdmin === null && isAdmin);
+  const showAdmin = isAdmin || hasSeenAdmin;
 
   if (loading) {
-    if (isAdmin || showAdmin) {
+    if (showAdmin) {
       return (
         <>
           <a
