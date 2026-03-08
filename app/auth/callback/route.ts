@@ -53,18 +53,12 @@ export async function GET(request: NextRequest) {
       // ВАЖНО: Синхронизируем пользователя с Prisma с retry логикой
       const syncResult = await syncUserWithRetry(data.user, 3);
       
-      if (syncResult.success) {
-        console.log("[CALLBACK] ✅ User synced to Prisma:", syncResult.user.id);
-        
-        // Проверяем, что синхронизация действительно прошла
-        const verifyUser = await prisma.user.findUnique({
-          where: { email: data.user.email! },
-        });
-        
-        if (!verifyUser) {
-          console.error("[CALLBACK] ⚠️ WARNING: User sync reported success but user not found in Prisma!");
+      if (syncResult.success && syncResult.user) {
+        console.log("[CALLBACK] ✅ User synced to Prisma:", syncResult.user.id, syncResult.user.email);
+        if (syncResult.created) {
+          console.log("[CALLBACK] ✅ User was created in Prisma");
         } else {
-          console.log("[CALLBACK] ✅ Verified: User exists in Prisma:", verifyUser.id);
+          console.log("[CALLBACK] ✅ User already existed in Prisma, updated if needed");
         }
       } else {
         console.error("[CALLBACK] ❌ Failed to sync user to Prisma after retries");
