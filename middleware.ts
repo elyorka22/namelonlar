@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { syncUserFromSupabase } from "@/lib/sync-user";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -39,6 +40,31 @@ export async function middleware(request: NextRequest) {
       // Сессия активна, cookies обновлены через getUser()
       // Дополнительно вызываем getSession() для синхронизации
       await supabase.auth.getSession();
+      
+      // ВАЖНО: Синхронизируем пользователя в Prisma если его там нет
+      // Это гарантирует, что пользователь будет синхронизирован при первом запросе после авторизации
+      // Делаем это только для определенных путей (профиль, API) чтобы не замедлять все запросы
+      const path = request.nextUrl.pathname;
+      if (path.startsWith("/profile") || path.startsWith("/api/profile") || path.startsWith("/admin")) {
+        try {
+          // Быстрая проверка - синхронизируем только если нужно
+          // Используем короткий timeout чтобы не замедлять запрос
+          const syncPromise = syncUserFromSupabase(user);
+          const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 500));
+          
+          // Ждем либо синхронизацию, либо timeout (500ms)
+          await Promise.race([syncPromise, timeoutPromise]);
+          
+          // Если синхронизация завершилась быстро, логируем
+          const syncResult = await syncPromise.catch(() => null);
+          if (syncResult?.created) {
+            console.log("[MIDDLEWARE] ✅ User synced to Prisma:", user.email);
+          }
+        } catch (syncError) {
+          // Игнорируем ошибки синхронизации в middleware - getCurrentUser() обработает
+          console.log("[MIDDLEWARE] Sync skipped (will be handled by getCurrentUser)");
+        }
+      }
     } else if (error) {
       // Игнорируем ошибки отсутствия сессии - это нормально для неавторизованных пользователей
       if (error.message !== "Auth session missing!") {

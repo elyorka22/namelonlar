@@ -50,7 +50,8 @@ export async function GET(request: NextRequest) {
     if (!error && data.user) {
       console.log("[CALLBACK] User authenticated:", data.user.email);
       
-      // ВАЖНО: Синхронизируем пользователя с Prisma с retry логикой
+      // ВАЖНО: Синхронизируем пользователя с Prisma СРАЗУ после авторизации
+      // Используем retry логику для надежности, но это должно работать с первой попытки
       const syncResult = await syncUserWithRetry(data.user, 3);
       
       if (syncResult.success && syncResult.user) {
@@ -60,9 +61,15 @@ export async function GET(request: NextRequest) {
         } else {
           console.log("[CALLBACK] ✅ User already existed in Prisma, updated if needed");
         }
+        
+        // ВАЖНО: Проверяем, что синхронизация действительно прошла перед редиректом
+        // Это гарантирует, что пользователь будет доступен сразу после редиректа
+        if (!syncResult.user.id) {
+          console.error("[CALLBACK] ⚠️ WARNING: Sync reported success but user.id is missing!");
+        }
       } else {
         console.error("[CALLBACK] ❌ Failed to sync user to Prisma after retries");
-        // Продолжаем - getCurrentUser() попробует синхронизировать позже
+        // Продолжаем - middleware и getCurrentUser() попробуют синхронизировать позже
       }
       
       // ВАЖНО: Вызываем getSession после exchangeCodeForSession
