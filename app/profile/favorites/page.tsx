@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Heart, Eye } from "lucide-react";
 import { formatPrice, formatRelativeTime } from "@/lib/utils";
-import { FavoriteButton } from "@/components/favorites/favorite-button";
+import { RemoveFavoriteButton } from "@/components/favorites/remove-favorite-button";
 
 export const dynamic = 'force-dynamic';
 
