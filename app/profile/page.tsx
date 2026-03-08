@@ -8,25 +8,16 @@ import { Settings, FileText, Heart, MessageCircle } from "lucide-react";
 export const dynamic = 'force-dynamic';
 
 export default async function ProfilePage() {
-  // Пробуем получить пользователя с небольшой задержкой для синхронизации cookies
-  let currentUser = await getCurrentUser();
-  console.log("[PROFILE] First getCurrentUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
-  
-  // Если пользователь не найден, пробуем еще раз (возможно cookies еще не синхронизировались)
-  if (!currentUser?.id) {
-    console.log("[PROFILE] User not found on first try, retrying...");
-    // Небольшая задержка для синхронизации cookies после middleware
-    await new Promise(resolve => setTimeout(resolve, 100));
-    currentUser = await getCurrentUser();
-    console.log("[PROFILE] Second getCurrentUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
-  }
+  // Используем новую быструю проверку авторизации
+  const currentUser = await getCurrentUser();
   
   if (!currentUser?.id) {
-    console.log("[PROFILE] No user found after retry, redirecting to signin");
+    console.log("[PROFILE] No user found, redirecting to signin");
     redirect("/auth/signin");
   }
 
-  const user = await prisma.user.findUnique({
+  // Пробуем получить пользователя из Prisma, но если его нет - используем данные из Supabase
+  let user = await prisma.user.findUnique({
     where: { id: currentUser.id },
     include: {
       listings: {
@@ -49,8 +40,22 @@ export default async function ProfilePage() {
     },
   });
 
+  // Если пользователя нет в Prisma, используем данные из Supabase
+  // Синхронизация произойдет асинхронно через middleware или getCurrentUser
   if (!user) {
-    redirect("/auth/signin");
+    // Создаем минимальный объект пользователя из данных Supabase
+    user = {
+      id: currentUser.id,
+      email: currentUser.email,
+      name: currentUser.name,
+      image: currentUser.image,
+      listings: [],
+      favorites: [],
+      _count: {
+        listings: 0,
+        favorites: 0,
+      },
+    } as any;
   }
 
   return (
