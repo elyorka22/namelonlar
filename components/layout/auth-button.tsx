@@ -153,15 +153,36 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
       }
     : session?.user || null;
 
+  const showAdmin = clientIsAdmin === true || (clientIsAdmin === null && isAdmin);
+
   if (loading) {
+    if (isAdmin || showAdmin) {
+      return (
+        <>
+          <Link
+            href="/admin"
+            className="hidden md:flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors font-medium"
+          >
+            <LayoutDashboard size={20} />
+            <span>Boshqaruv paneli</span>
+          </Link>
+          <Link
+            href="/listing/new"
+            className="hidden md:flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <Plus size={20} />
+            <span>E'lon joylashtirish</span>
+          </Link>
+          <div className="w-9 h-9 rounded-full bg-gray-200 animate-pulse" />
+        </>
+      );
+    }
     return (
       <div className="flex items-center gap-2">
         <div className="w-9 h-9 rounded-full bg-gray-200 animate-pulse" />
       </div>
     );
   }
-
-  const showAdmin = clientIsAdmin === true || (clientIsAdmin === null && isAdmin);
 
   if (user) {
     return (
