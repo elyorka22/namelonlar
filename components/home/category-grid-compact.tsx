@@ -14,8 +14,7 @@ const categoryIcons: Record<string, string> = {
   rabota: "💼",
   uslugi: "🔧",
   arenda: "🏢",
-  zapchasti: "🔩",
-  odezhda: "👕",
+  optom: "📦",
   dom: "🏡",
   zhivotnye: "🐕",
   hobbi: "🎮",
@@ -30,8 +29,7 @@ const defaultCategories = [
   { id: "4", name: "Ish", slug: "rabota" },
   { id: "5", name: "Xizmatlar", slug: "uslugi" },
   { id: "6", name: "Ijaraga olish", slug: "arenda" },
-  { id: "7", name: "Zapchastlar", slug: "zapchasti" },
-  { id: "8", name: "Odezhda", slug: "odezhda" },
+  { id: "7", name: "Optom", slug: "optom" },
 ];
 
 export function CategoryGridCompact({ categories }: CategoryGridCompactProps) {
