@@ -183,16 +183,39 @@ export async function POST(request: NextRequest) {
       data: { password: hashedPassword },
     });
 
+    console.log("[API-PASSWORD] ✅ Password successfully updated for user:", currentUser.email);
+    
     return NextResponse.json({
       success: true,
       message: user.password 
         ? "Parol muvaffaqiyatli o'zgartirildi" 
         : "Parol muvaffaqiyatli o'rnatildi",
     });
-  } catch (error) {
-    console.error("Error updating password:", error);
+  } catch (error: any) {
+    console.error("[API-PASSWORD] ❌ Error updating password:", error);
+    console.error("[API-PASSWORD] Error message:", error?.message);
+    console.error("[API-PASSWORD] Error stack:", error?.stack);
+    
+    // Более детальная обработка ошибок
+    if (error?.code === 'P2002') {
+      return NextResponse.json(
+        { error: "Пользователь с таким email уже существует" },
+        { status: 409 }
+      );
+    }
+    
+    if (error?.message?.includes("Tenant or user not found")) {
+      return NextResponse.json(
+        { error: "Ошибка подключения к базе данных. Проверьте DATABASE_URL." },
+        { status: 503 }
+      );
+    }
+    
     return NextResponse.json(
-      { error: "Внутренняя ошибка сервера" },
+      { 
+        error: "Внутренняя ошибка сервера",
+        details: process.env.NODE_ENV === "development" ? error?.message : undefined
+      },
       { status: 500 }
     );
   }
