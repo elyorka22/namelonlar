@@ -149,7 +149,7 @@ export default async function ProfilePage() {
             </div>
             {user.listings.length > 0 ? (
               <div className="space-y-4">
-                {user.listings.map((listing) => (
+                {user.listings.map((listing: any) => (
                   <Link
                     key={listing.id}
                     href={`/listing/${listing.id}`}
@@ -192,7 +192,7 @@ export default async function ProfilePage() {
             </div>
             {user.favorites.length > 0 ? (
               <div className="space-y-4">
-                {user.favorites.map((favorite) => (
+                {user.favorites.map((favorite: any) => (
                   <Link
                     key={favorite.id}
                     href={`/listing/${favorite.listing.id}`}
