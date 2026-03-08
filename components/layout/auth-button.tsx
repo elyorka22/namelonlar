@@ -6,9 +6,13 @@ import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { UserMenu } from "./user-menu";
-import { Plus } from "lucide-react";
+import { Plus, LayoutDashboard } from "lucide-react";
 
-export function AuthButton() {
+interface AuthButtonProps {
+  isAdmin?: boolean;
+}
+
+export function AuthButton({ isAdmin = false }: AuthButtonProps) {
   const { data: session } = useSession();
   const router = useRouter();
   const pathname = usePathname();
@@ -130,6 +134,15 @@ export function AuthButton() {
   if (user) {
     return (
       <>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="hidden md:flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors font-medium"
+          >
+            <LayoutDashboard size={20} />
+            <span>Boshqaruv paneli</span>
+          </Link>
+        )}
         <Link
           href="/listing/new"
           className="hidden md:flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
@@ -137,7 +150,7 @@ export function AuthButton() {
           <Plus size={20} />
           <span>E'lon joylashtirish</span>
         </Link>
-        <UserMenu user={user} />
+        <UserMenu user={user} isAdmin={isAdmin} />
       </>
     );
   }

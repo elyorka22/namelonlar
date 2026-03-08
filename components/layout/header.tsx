@@ -1,8 +1,15 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
 import { AuthButton } from "./auth-button";
+import { getCurrentUser } from "@/lib/auth-helpers";
+import { isAdminOrModerator } from "@/lib/auth";
 
 export async function Header() {
+  const currentUser = await getCurrentUser();
+  const showAdminButton = currentUser?.id
+    ? await isAdminOrModerator(currentUser.id)
+    : false;
+
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
       <div className="container mx-auto px-4">
@@ -27,11 +34,11 @@ export async function Header() {
             >
               Kategoriyalar
             </Link>
-            <AuthButton />
+            <AuthButton isAdmin={showAdminButton} />
           </nav>
 
           <div className="md:hidden">
-            <AuthButton />
+            <AuthButton isAdmin={showAdminButton} />
           </div>
         </div>
       </div>

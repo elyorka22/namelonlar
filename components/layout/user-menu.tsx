@@ -4,7 +4,8 @@ import { useState } from "react";
 import { signOut as nextAuthSignOut } from "next-auth/react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { User, Settings, Heart, FileText, LogOut, ChevronDown } from "lucide-react";
+import { User, Settings, Heart, FileText, LogOut, ChevronDown, LayoutDashboard } from "lucide-react";
+import Link from "next/link";
 import Image from "next/image";
 
 interface UserMenuProps {
@@ -13,9 +14,10 @@ interface UserMenuProps {
     email?: string | null;
     image?: string | null;
   };
+  isAdmin?: boolean;
 }
 
-export function UserMenu({ user }: UserMenuProps) {
+export function UserMenu({ user, isAdmin = false }: UserMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [imageError, setImageError] = useState(false);
   const router = useRouter();
@@ -135,6 +137,16 @@ export function UserMenu({ user }: UserMenuProps) {
                 <Settings size={18} className="text-gray-600" />
                 <span>Sozlamalar</span>
               </button>
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  onClick={() => setIsOpen(false)}
+                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left text-primary-600 font-medium"
+                >
+                  <LayoutDashboard size={18} />
+                  <span>Boshqaruv paneli</span>
+                </Link>
+              )}
               <button
                 onClick={async () => {
                   setIsOpen(false);

@@ -114,6 +114,22 @@ export async function isAdmin(userId: string): Promise<boolean> {
 }
 
 /**
+ * Проверить, может ли пользователь заходить в админ-панель (ADMIN или MODERATOR)
+ */
+export async function isAdminOrModerator(userId: string): Promise<boolean> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
+    return user?.role === "ADMIN" || user?.role === "MODERATOR";
+  } catch (error) {
+    console.error("[AUTH] Error checking admin/moderator role:", error);
+    return false;
+  }
+}
+
+/**
  * Требовать авторизацию и роль администратора
  * 
  * @returns Авторизованный администратор
