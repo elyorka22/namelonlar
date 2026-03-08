@@ -7,6 +7,9 @@ import { Footer } from "@/components/layout/footer";
 
 const inter = Inter({ subsets: ["latin", "cyrillic"] });
 
+// Шапка зависит от авторизации — не кэшировать, чтобы кнопка админки не мигала
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Namangan Elonlar - Namangan E'lonlari",
   description: "Namangan uchun e'lonlar platformasi. Sotib olish, sotish, xizmatlar va ijaraga olish.",

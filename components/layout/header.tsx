@@ -4,6 +4,9 @@ import { AuthButton } from "./auth-button";
 import { getCurrentUser } from "@/lib/auth-helpers";
 import { isAdminOrModerator } from "@/lib/auth";
 
+// Результат зависит от сессии — не кэшировать
+export const dynamic = "force-dynamic";
+
 export async function Header() {
   const currentUser = await getCurrentUser();
   const showAdminButton = currentUser?.id
