@@ -1,7 +1,15 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { syncUserFromSupabase } from "@/lib/sync-user";
 
+/**
+ * Упрощенный middleware
+ * 
+ * Принципы:
+ * 1. Только обновляет cookies если нужно
+ * 2. Не проверяет авторизацию (это делают страницы и API routes)
+ * 3. Не блокирует запросы
+ * 4. Не синхронизирует с Prisma (это делают страницы и API routes при необходимости)
+ */
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -30,29 +38,11 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // ВАЖНО: Обновляем сессию Supabase только если нужно
-  // Не вызываем getUser() на каждом запросе - это может вызывать проблемы с cookies
-  // Вместо этого просто обновляем cookies через getSession() если они есть
+  // Только обновляем cookies если нужно
+  // Не проверяем авторизацию - это делают страницы и API routes
   try {
-    // Только проверяем сессию, не обновляем токен на каждом запросе
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session?.user) {
-      // Сессия активна, синхронизируем пользователя в Prisma если нужно
-      // Делаем это только для определенных путей (профиль, API) чтобы не замедлять все запросы
-      const path = request.nextUrl.pathname;
-      if (path.startsWith("/profile") || path.startsWith("/api/profile") || path.startsWith("/admin")) {
-        // Запускаем синхронизацию асинхронно, не блокируя запрос
-        syncUserFromSupabase(session.user).then((syncResult) => {
-          if (syncResult.created) {
-            console.log("[MIDDLEWARE] ✅ User synced to Prisma (async):", session.user.email);
-          }
-        }).catch((syncError) => {
-          // Игнорируем ошибки - getCurrentUser() обработает
-          console.log("[MIDDLEWARE] Sync error (will be handled by getCurrentUser)");
-        });
-      }
-    }
+    // Просто вызываем getSession() для обновления cookies если сессия есть
+    await supabase.auth.getSession();
   } catch (error) {
     // Игнорируем ошибки - это нормально для неавторизованных пользователей
   }
