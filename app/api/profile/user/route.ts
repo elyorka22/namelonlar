@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { syncUserFromSupabase } from "@/lib/sync-user";
 
 export const dynamic = 'force-dynamic';
 
@@ -48,17 +49,37 @@ export async function GET(request: NextRequest) {
         
         if (session?.user) {
           console.log("[API-PROFILE-USER] Found user via Supabase session:", session.user.email);
-          const prismaUser = await prisma.user.findUnique({ where: { email: session.user.email! } });
-          if (prismaUser) {
-            currentUser = { id: prismaUser.id, email: prismaUser.email, name: prismaUser.name, image: prismaUser.image };
+          
+          // ВАЖНО: Используем функцию синхронизации для гарантированной синхронизации
+          const syncResult = await syncUserFromSupabase(session.user);
+          if (syncResult.success && syncResult.user) {
+            currentUser = { 
+              id: syncResult.user.id, 
+              email: syncResult.user.email, 
+              name: syncResult.user.name, 
+              image: syncResult.user.image 
+            };
+            if (syncResult.created) {
+              console.log("[API-PROFILE-USER] ✅ User was missing in Prisma, synced now:", currentUser.id);
+            }
           }
         } else {
           const { data: { user: supabaseUser }, error: userError } = await supabase.auth.getUser();
           if (supabaseUser) {
             console.log("[API-PROFILE-USER] Found user via Supabase getUser:", supabaseUser.email);
-            const prismaUser = await prisma.user.findUnique({ where: { email: supabaseUser.email! } });
-            if (prismaUser) {
-              currentUser = { id: prismaUser.id, email: prismaUser.email, name: prismaUser.name, image: prismaUser.image };
+            
+            // ВАЖНО: Используем функцию синхронизации для гарантированной синхронизации
+            const syncResult = await syncUserFromSupabase(supabaseUser);
+            if (syncResult.success && syncResult.user) {
+              currentUser = { 
+                id: syncResult.user.id, 
+                email: syncResult.user.email, 
+                name: syncResult.user.name, 
+                image: syncResult.user.image 
+              };
+              if (syncResult.created) {
+                console.log("[API-PROFILE-USER] ✅ User was missing in Prisma, synced now:", currentUser.id);
+              }
             }
           }
         }

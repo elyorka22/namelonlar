@@ -44,7 +44,31 @@ export default function ProfileSettingsPageClient() {
 
         if (!response.ok) {
           if (response.status === 401) {
-            console.log("[PROFILE-SETTINGS-CLIENT] Unauthorized, redirecting to signin");
+            console.log("[PROFILE-SETTINGS-CLIENT] Unauthorized (401), checking session again...");
+            
+            // Проверяем сессию еще раз - возможно она есть, но синхронизация не произошла
+            const { data: { session: retrySession } } = await supabase.auth.getSession();
+            if (retrySession?.user) {
+              console.log("[PROFILE-SETTINGS-CLIENT] Session exists, but API returned 401. Retrying API call...");
+              
+              // Пробуем еще раз через небольшую задержку (возможно синхронизация в процессе)
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              const retryResponse = await fetch("/api/profile/user", {
+                method: "GET",
+                credentials: "include",
+              });
+              
+              if (retryResponse.ok) {
+                const retryUserData = await retryResponse.json();
+                console.log("[PROFILE-SETTINGS-CLIENT] ✅ Retry successful, user data loaded:", retryUserData);
+                setUser(retryUserData);
+                setLoading(false);
+                return;
+              }
+            }
+            
+            console.log("[PROFILE-SETTINGS-CLIENT] Still unauthorized after retry, redirecting to signin");
             router.push("/auth/signin");
             return;
           }
