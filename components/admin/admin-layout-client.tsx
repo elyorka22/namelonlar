@@ -29,9 +29,15 @@ export function AdminLayoutClient({
   const [status, setStatus] = useState<"loading" | "ok" | "unauthorized">("loading");
 
   useEffect(() => {
-    const doCheck = async () => {
-      const supabase = createClient();
-      const { data: { session } } = await supabase.auth.getSession();
+    const supabase = createClient();
+
+    const doCheck = async (retryCount = 0): Promise<boolean> => {
+      const maxRetries = 2;
+      let session = (await supabase.auth.getSession()).data.session;
+      if (!session && retryCount < maxRetries) {
+        await new Promise((r) => setTimeout(r, 800));
+        session = (await supabase.auth.getSession()).data.session;
+      }
       const headers: HeadersInit = {};
       if (session?.access_token) {
         headers["Authorization"] = "Bearer " + session.access_token;
@@ -42,17 +48,27 @@ export function AdminLayoutClient({
       try {
         const res = await fetch("/api/auth/me", { credentials: "include", headers });
         if (res.status === 401) {
+          if (retryCount < maxRetries) {
+            await new Promise((r) => setTimeout(r, 1200));
+            return doCheck(retryCount + 1);
+          }
           window.location.href = "/auth/signin?callbackUrl=" + encodeURIComponent("/admin");
-          return;
+          return false;
         }
         const data = await res.json();
         if (!data?.isAdmin) {
           window.location.href = "/";
-          return;
+          return false;
         }
         setStatus("ok");
+        return true;
       } catch {
+        if (retryCount < maxRetries) {
+          await new Promise((r) => setTimeout(r, 1200));
+          return doCheck(retryCount + 1);
+        }
         window.location.href = "/auth/signin?callbackUrl=" + encodeURIComponent("/admin");
+        return false;
       }
     };
     doCheck();
