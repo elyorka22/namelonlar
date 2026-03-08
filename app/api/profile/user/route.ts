@@ -9,44 +9,36 @@ export async function GET(request: NextRequest) {
     // Используем единую систему авторизации
     const currentUser = await requireAuth();
 
-    // Пробуем получить пользователя из Prisma
-    let user = await prisma.user.findUnique({
-      where: { id: currentUser.id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        image: true,
-        password: true,
-      },
-    });
-
-    // Если пользователя нет в Prisma, используем данные из Supabase
-    // Синхронизация произойдет асинхронно
-    if (!user) {
-      console.log("[API-PROFILE-USER] User not in Prisma, using Supabase data");
-      
-      // Запускаем синхронизацию в фоне
-      const supabase = await createClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        syncUserFromSupabase(session.user).catch((error) => {
-          console.error("[API-PROFILE-USER] Sync error (non-blocking):", error);
-        });
-      }
-      
-      // Возвращаем данные из Supabase
-      user = {
+    // Получаем данные пользователя из Prisma (если есть)
+    const userData = await getUserData(currentUser.id);
+    
+    // Если пользователя нет в Prisma, возвращаем данные из Supabase
+    if (!userData) {
+      return NextResponse.json({
         id: currentUser.id,
-        email: currentUser.email ?? null,
+        email: currentUser.email,
         name: currentUser.name,
         image: currentUser.image,
-        password: null, // Пароль хранится только в Prisma
-      };
+        password: null,
+      });
     }
 
-    return NextResponse.json(user);
+    // Возвращаем данные из Prisma
+    return NextResponse.json({
+      id: userData.id,
+      email: userData.email,
+      name: userData.name,
+      image: userData.image,
+      password: userData.password,
+    });
   } catch (error) {
+    if (error instanceof AuthError) {
+      return NextResponse.json(
+        { error: "Авторизация требуется" },
+        { status: 401 }
+      );
+    }
+    
     console.error("[API-PROFILE-USER] Error:", error);
     return NextResponse.json(
       { error: "Внутренняя ошибка сервера" },
