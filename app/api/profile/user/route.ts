@@ -1,36 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser, getSupabaseUser } from "@/lib/auth-helpers";
-import { prisma } from "@/lib/prisma";
-import { createClient } from "@/lib/supabase/server";
-import { syncUserFromSupabase } from "@/lib/sync-user";
+import { requireAuth, getUserData } from "@/lib/auth";
+import { AuthError } from "@/lib/auth";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("[API-PROFILE-USER] Checking authentication...");
-    
-    // Используем новую быструю проверку через Supabase
-    let currentUser = await getCurrentUser();
-    console.log("[API-PROFILE-USER] getCurrentUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
-
-    // Если getCurrentUser не нашел, пробуем напрямую через Supabase (fallback)
-    if (!currentUser?.id) {
-      console.log("[API-PROFILE-USER] getCurrentUser failed, trying getSupabaseUser...");
-      currentUser = await getSupabaseUser();
-      console.log("[API-PROFILE-USER] getSupabaseUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
-    }
-
-
-    if (!currentUser?.id) {
-      console.log("[API-PROFILE-USER] ❌ No user found, returning 401");
-      return NextResponse.json(
-        { error: "Авторизация требуется" },
-        { status: 401 }
-      );
-    }
-
-    console.log("[API-PROFILE-USER] ✅ User authenticated:", currentUser.email);
+    // Используем единую систему авторизации
+    const currentUser = await requireAuth();
 
     // Пробуем получить пользователя из Prisma
     let user = await prisma.user.findUnique({

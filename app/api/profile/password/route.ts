@@ -1,36 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser, getSupabaseUser } from "@/lib/auth-helpers";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, getUserData } from "@/lib/auth";
+import { AuthError } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { createClient } from "@/lib/supabase/server";
 import { syncUserFromSupabase } from "@/lib/sync-user";
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("[API-PASSWORD] Checking authentication...");
-    
-    // Используем новую быструю проверку через Supabase
-    let currentUser = await getCurrentUser();
-    console.log("[API-PASSWORD] getCurrentUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
-    
-    // Если getCurrentUser не нашел, пробуем напрямую через Supabase (fallback)
-    if (!currentUser?.id) {
-      console.log("[API-PASSWORD] getCurrentUser failed, trying getSupabaseUser...");
-      currentUser = await getSupabaseUser();
-      console.log("[API-PASSWORD] getSupabaseUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
-    }
-    
-    if (!currentUser?.id) {
-      console.log("[API-PASSWORD] ❌ No user found, returning 401");
-      return NextResponse.json(
-        { error: "Авторизация требуется. Iltimos, qayta kirib ko'ring." },
-        { status: 401 }
-      );
-    }
-    
-    console.log("[API-PASSWORD] ✅ User authenticated:", currentUser.email);
+    // Используем единую систему авторизации
+    const currentUser = await requireAuth();
 
     const body = await request.json();
     const { currentPassword, newPassword } = body;
@@ -49,7 +30,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Получаем пользователя из базы или создаем если его нет
+    // Получаем пользователя из Prisma
     let user = await prisma.user.findUnique({
       where: { id: currentUser.id },
       select: { password: true, email: true },
@@ -57,7 +38,6 @@ export async function POST(request: NextRequest) {
 
     // Если пользователя нет в Prisma, создаем его (синхронизация)
     if (!user) {
-      console.log("[API-PASSWORD] User not in Prisma, creating...");
       const supabase = await createClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -71,9 +51,8 @@ export async function POST(request: NextRequest) {
       }
       
       if (!user) {
-        console.error("[API-PASSWORD] Failed to create user in Prisma for ID:", currentUser.id);
         return NextResponse.json(
-          { error: "Пользователь не найден и не может быть создан" },
+          { error: "Пользователь не найден" },
           { status: 404 }
         );
       }
@@ -119,11 +98,15 @@ export async function POST(request: NextRequest) {
         : "Parol muvaffaqiyatli o'rnatildi",
     });
   } catch (error: any) {
-    console.error("[API-PASSWORD] ❌ Error updating password:", error);
-    console.error("[API-PASSWORD] Error message:", error?.message);
-    console.error("[API-PASSWORD] Error stack:", error?.stack);
+    if (error instanceof AuthError) {
+      return NextResponse.json(
+        { error: "Авторизация требуется" },
+        { status: 401 }
+      );
+    }
     
-    // Более детальная обработка ошибок
+    console.error("[API-PASSWORD] Error:", error);
+    
     if (error?.code === 'P2002') {
       return NextResponse.json(
         { error: "Пользователь с таким email уже существует" },
@@ -131,18 +114,8 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    if (error?.message?.includes("Tenant or user not found")) {
-      return NextResponse.json(
-        { error: "Ошибка подключения к базе данных. Проверьте DATABASE_URL." },
-        { status: 503 }
-      );
-    }
-    
     return NextResponse.json(
-      { 
-        error: "Внутренняя ошибка сервера",
-        details: process.env.NODE_ENV === "development" ? error?.message : undefined
-      },
+      { error: "Внутренняя ошибка сервера" },
       { status: 500 }
     );
   }

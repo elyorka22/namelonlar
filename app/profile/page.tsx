@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth-helpers";
+import { requireAuth, getUserData } from "@/lib/auth";
+import { AuthError } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import Image from "next/image";
@@ -8,11 +9,11 @@ import { Settings, FileText, Heart, MessageCircle } from "lucide-react";
 export const dynamic = 'force-dynamic';
 
 export default async function ProfilePage() {
-  // Используем новую быструю проверку авторизации
-  const currentUser = await getCurrentUser();
-  
-  if (!currentUser?.id) {
-    console.log("[PROFILE] No user found, redirecting to signin");
+  // Используем единую систему авторизации
+  let currentUser;
+  try {
+    currentUser = await requireAuth();
+  } catch (error) {
     redirect("/auth/signin");
   }
 
