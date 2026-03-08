@@ -46,24 +46,16 @@ export async function middleware(request: NextRequest) {
       // Делаем это только для определенных путей (профиль, API) чтобы не замедлять все запросы
       const path = request.nextUrl.pathname;
       if (path.startsWith("/profile") || path.startsWith("/api/profile") || path.startsWith("/admin")) {
-        try {
-          // Быстрая проверка - синхронизируем только если нужно
-          // Используем короткий timeout чтобы не замедлять запрос
-          const syncPromise = syncUserFromSupabase(user);
-          const timeoutPromise = new Promise((resolve) => setTimeout(resolve, 500));
-          
-          // Ждем либо синхронизацию, либо timeout (500ms)
-          await Promise.race([syncPromise, timeoutPromise]);
-          
-          // Если синхронизация завершилась быстро, логируем
-          const syncResult = await syncPromise.catch(() => null);
-          if (syncResult?.created) {
-            console.log("[MIDDLEWARE] ✅ User synced to Prisma:", user.email);
+        // Запускаем синхронизацию асинхронно, не блокируя запрос
+        // getCurrentUser() также попробует синхронизировать, если это не успело
+        syncUserFromSupabase(user).then((syncResult) => {
+          if (syncResult.created) {
+            console.log("[MIDDLEWARE] ✅ User synced to Prisma (async):", user.email);
           }
-        } catch (syncError) {
-          // Игнорируем ошибки синхронизации в middleware - getCurrentUser() обработает
-          console.log("[MIDDLEWARE] Sync skipped (will be handled by getCurrentUser)");
-        }
+        }).catch((syncError) => {
+          // Игнорируем ошибки - getCurrentUser() обработает
+          console.log("[MIDDLEWARE] Sync error (will be handled by getCurrentUser)");
+        });
       }
     } else if (error) {
       // Игнорируем ошибки отсутствия сессии - это нормально для неавторизованных пользователей
