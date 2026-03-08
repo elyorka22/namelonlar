@@ -51,7 +51,12 @@ export async function GET(request: NextRequest) {
     const currentUser = await getCurrentUser();
     
     // 4. Проверяем все пользователи в Prisma (для диагностики)
-    let allPrismaUsers = [];
+    let allPrismaUsers: Array<{
+      id: string;
+      email: string | null;
+      name: string | null;
+      createdAt: Date;
+    }> = [];
     try {
       allPrismaUsers = await prisma.user.findMany({
         take: 5,
