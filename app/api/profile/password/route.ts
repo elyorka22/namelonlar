@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth-helpers";
+import { getCurrentUser, getSupabaseUser } from "@/lib/auth-helpers";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -12,104 +12,15 @@ export async function POST(request: NextRequest) {
   try {
     console.log("[API-PASSWORD] Checking authentication...");
     
-    // Пробуем получить пользователя через getCurrentUser
+    // Используем новую быструю проверку через Supabase
     let currentUser = await getCurrentUser();
     console.log("[API-PASSWORD] getCurrentUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
     
-    // Если getCurrentUser не нашел пользователя, пробуем напрямую через Supabase
+    // Если getCurrentUser не нашел, пробуем напрямую через Supabase (fallback)
     if (!currentUser?.id) {
-      console.log("[API-PASSWORD] getCurrentUser failed, trying direct Supabase check...");
-      
-      try {
-        // Пробуем использовать cookies из request напрямую
-        const requestCookies = request.cookies.getAll();
-        console.log("[API-PASSWORD] Request cookies:", requestCookies.length);
-        
-        const supabaseCookies = requestCookies.filter(c => 
-          c.name.includes('supabase') || c.name.includes('sb-')
-        );
-        console.log("[API-PASSWORD] Supabase cookies in request:", supabaseCookies.length, supabaseCookies.map(c => c.name));
-        
-        // Также пробуем через cookies()
-        const cookieStore = await cookies();
-        const allCookies = cookieStore.getAll();
-        console.log("[API-PASSWORD] Cookies() total:", allCookies.length);
-        
-        // Создаем response для установки cookies
-        const response = NextResponse.next();
-        
-        const supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-          {
-            cookies: {
-              getAll() {
-                // Пробуем сначала request cookies, потом cookies()
-                return requestCookies.length > 0 ? requestCookies : cookieStore.getAll();
-              },
-              // В API routes можно устанавливать cookies
-              setAll(cookiesToSet) {
-                cookiesToSet.forEach(({ name, value, options }) => {
-                  cookieStore.set(name, value, options);
-                  response.cookies.set(name, value, options);
-                });
-              },
-            },
-          }
-        );
-        
-        // Пробуем getSession сначала
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        console.log("[API-PASSWORD] Supabase session:", { hasSession: !!session, error: sessionError?.message });
-        
-        if (session?.user) {
-          console.log("[API-PASSWORD] Found user via Supabase session:", session.user.email);
-          
-          // ВАЖНО: Используем функцию синхронизации для гарантированной синхронизации
-          const syncResult = await syncUserFromSupabase(session.user);
-          if (syncResult.success && syncResult.user) {
-            currentUser = {
-              id: syncResult.user.id,
-              email: syncResult.user.email,
-              name: syncResult.user.name,
-              image: syncResult.user.image,
-            };
-            if (syncResult.created) {
-              console.log("[API-PASSWORD] ✅ User was missing in Prisma, synced now:", currentUser.id);
-            } else {
-              console.log("[API-PASSWORD] ✅ User found via Supabase session:", currentUser.email);
-            }
-          }
-        } else {
-          // Пробуем getUser
-          const { data: { user: supabaseUser }, error: userError } = await supabase.auth.getUser();
-          console.log("[API-PASSWORD] Supabase getUser:", { hasUser: !!supabaseUser, error: userError?.message });
-          
-          if (supabaseUser) {
-            console.log("[API-PASSWORD] Found user via Supabase getUser:", supabaseUser.email);
-            
-            // ВАЖНО: Используем функцию синхронизации для гарантированной синхронизации
-            const syncResult = await syncUserFromSupabase(supabaseUser);
-            if (syncResult.success && syncResult.user) {
-              currentUser = {
-                id: syncResult.user.id,
-                email: syncResult.user.email,
-                name: syncResult.user.name,
-                image: syncResult.user.image,
-              };
-              if (syncResult.created) {
-                console.log("[API-PASSWORD] ✅ User was missing in Prisma, synced now:", currentUser.id);
-              } else {
-                console.log("[API-PASSWORD] ✅ User found via Supabase getUser:", currentUser.email);
-              }
-            }
-          } else {
-            console.log("[API-PASSWORD] ❌ No Supabase user found");
-          }
-        }
-      } catch (supabaseError: any) {
-        console.error("[API-PASSWORD] Error in Supabase check:", supabaseError.message);
-      }
+      console.log("[API-PASSWORD] getCurrentUser failed, trying getSupabaseUser...");
+      currentUser = await getSupabaseUser();
+      console.log("[API-PASSWORD] getSupabaseUser result:", currentUser ? { id: currentUser.id, email: currentUser.email } : "null");
     }
     
     if (!currentUser?.id) {
