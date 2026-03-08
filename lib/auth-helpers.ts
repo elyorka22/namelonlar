@@ -22,7 +22,16 @@ export async function getSupabaseUser() {
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (session?.user) {
-      const role = (session.user.app_metadata?.role as string) || "USER";
+      let role = (session.user.app_metadata?.role as string) || "USER";
+      if (role !== "ADMIN" && role !== "MODERATOR" && session.user.email) {
+        const prismaUser = await prisma.user.findUnique({
+          where: { email: session.user.email },
+          select: { role: true },
+        });
+        if (prismaUser?.role === "ADMIN" || prismaUser?.role === "MODERATOR") {
+          role = prismaUser.role;
+        }
+      }
       return {
         id: session.user.id,
         email: session.user.email!,
@@ -30,8 +39,8 @@ export async function getSupabaseUser() {
               session.user.user_metadata?.name ||
               null,
         image: session.user.user_metadata?.avatar_url ||
-               session.user.user_metadata?.picture ||
-               null,
+              session.user.user_metadata?.picture ||
+              null,
         role: role === "ADMIN" || role === "MODERATOR" ? role : "USER",
       };
     }
