@@ -139,17 +139,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Получаем пользователя из базы
-    const user = await prisma.user.findUnique({
+    // Получаем пользователя из базы или создаем если его нет
+    let user = await prisma.user.findUnique({
       where: { id: currentUser.id },
-      select: { password: true },
+      select: { password: true, email: true },
     });
 
+    // Если пользователя нет в Prisma, создаем его (синхронизация)
     if (!user) {
-      return NextResponse.json(
-        { error: "Пользователь не найден" },
-        { status: 404 }
-      );
+      console.log("[API-PASSWORD] User not in Prisma, creating...");
+      const supabase = await createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const syncResult = await syncUserFromSupabase(session.user);
+        if (syncResult.success && syncResult.user) {
+          user = await prisma.user.findUnique({
+            where: { id: currentUser.id },
+            select: { password: true, email: true },
+          });
+        }
+      }
+      
+      if (!user) {
+        console.error("[API-PASSWORD] Failed to create user in Prisma for ID:", currentUser.id);
+        return NextResponse.json(
+          { error: "Пользователь не найден и не может быть создан" },
+          { status: 404 }
+        );
+      }
     }
 
     // Если у пользователя уже есть пароль, проверяем текущий
