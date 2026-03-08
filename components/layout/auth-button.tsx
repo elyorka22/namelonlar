@@ -18,6 +18,8 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
   const pathname = usePathname();
   const [supabaseUser, setSupabaseUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  // Роль запрашиваем один раз с клиента — тогда кнопка админки не мигает при навигации
+  const [clientIsAdmin, setClientIsAdmin] = useState<boolean | null>(null);
 
   useEffect(() => {
     // Проверяем Supabase сессию
@@ -75,6 +77,34 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
     return () => subscription.unsubscribe();
   }, [router]);
 
+  // Сброс роли при выходе
+  useEffect(() => {
+    if (!supabaseUser && !session?.user) {
+      setClientIsAdmin(null);
+    }
+  }, [supabaseUser, session?.user]);
+
+  // Один раз запрашиваем роль с сервера — результат не меняется до выхода, кнопка не мигает
+  useEffect(() => {
+    if (loading || (!supabaseUser && !session?.user)) return;
+    if (clientIsAdmin !== null) return;
+
+    let cancelled = false;
+    fetch("/api/auth/role")
+      .then((res) => res.json())
+      .then((data: { isAdmin?: boolean }) => {
+        if (!cancelled && typeof data.isAdmin === "boolean") {
+          setClientIsAdmin(data.isAdmin);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setClientIsAdmin(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, supabaseUser, session?.user, clientIsAdmin]);
+
   // Проверяем сессию при изменении пути (например, после callback)
   useEffect(() => {
     const supabase = createClient();
@@ -131,10 +161,12 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
     );
   }
 
+  const showAdmin = clientIsAdmin === true || (clientIsAdmin === null && isAdmin);
+
   if (user) {
     return (
       <>
-        {isAdmin && (
+        {showAdmin && (
           <Link
             href="/admin"
             className="hidden md:flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors font-medium"
@@ -150,7 +182,7 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
           <Plus size={20} />
           <span>E'lon joylashtirish</span>
         </Link>
-        <UserMenu user={user} isAdmin={isAdmin} />
+        <UserMenu user={user} isAdmin={showAdmin} />
       </>
     );
   }
