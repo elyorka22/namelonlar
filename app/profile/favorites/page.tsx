@@ -18,25 +18,32 @@ export default async function FavoritesPage() {
     redirect("/auth/signin");
   }
 
-  // Получаем любимые объявления пользователя
-  const favorites = await prisma.favorite.findMany({
-    where: { userId: currentUser.id },
-    include: {
-      listing: {
-        include: {
-          category: true,
-          user: {
-            select: {
-              id: true,
-              name: true,
-              image: true,
+  // Получаем любимые объявления пользователя с обработкой ошибок
+  let favorites = [];
+  try {
+    favorites = await prisma.favorite.findMany({
+      where: { userId: currentUser.id },
+      include: {
+        listing: {
+          include: {
+            category: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                image: true,
+              },
             },
           },
         },
       },
-    },
-    orderBy: { createdAt: "desc" },
-  });
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (error) {
+    console.error("[PROFILE-FAVORITES] Error fetching favorites:", error);
+    // Продолжаем с пустым массивом
+    favorites = [];
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

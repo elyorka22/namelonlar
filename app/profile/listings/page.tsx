@@ -17,13 +17,21 @@ export default async function MyListingsPage() {
     redirect("/auth/signin");
   }
 
-  const listings = await prisma.listing.findMany({
-    where: { userId: currentUser.id },
-    include: {
-      category: true,
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  // Получаем объявления пользователя с обработкой ошибок
+  let listings = [];
+  try {
+    listings = await prisma.listing.findMany({
+      where: { userId: currentUser.id },
+      include: {
+        category: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  } catch (error) {
+    console.error("[PROFILE-LISTINGS] Error fetching listings:", error);
+    // Продолжаем с пустым массивом
+    listings = [];
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

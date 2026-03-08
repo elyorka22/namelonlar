@@ -18,28 +18,35 @@ export default async function ProfilePage() {
   }
 
   // Пробуем получить пользователя из Prisma, но если его нет - используем данные из Supabase
-  let user = await prisma.user.findUnique({
-    where: { id: currentUser.id },
-    include: {
-      listings: {
-        take: 5,
-        orderBy: { createdAt: "desc" },
-      },
-      favorites: {
-        take: 5,
-        include: {
-          listing: true,
+  let user;
+  try {
+    user = await prisma.user.findUnique({
+      where: { id: currentUser.id },
+      include: {
+        listings: {
+          take: 5,
+          orderBy: { createdAt: "desc" },
         },
-        orderBy: { createdAt: "desc" },
-      },
-      _count: {
-        select: {
-          listings: true,
-          favorites: true,
+        favorites: {
+          take: 5,
+          include: {
+            listing: true,
+          },
+          orderBy: { createdAt: "desc" },
+        },
+        _count: {
+          select: {
+            listings: true,
+            favorites: true,
+          },
         },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("[PROFILE] Error fetching user from Prisma:", error);
+    // Продолжаем с fallback данными
+    user = null;
+  }
 
   // Если пользователя нет в Prisma, используем данные из Supabase
   // Синхронизация произойдет асинхронно через middleware или getCurrentUser
