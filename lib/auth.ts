@@ -9,9 +9,12 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { authOptions } from "@/lib/nextauth";
 import { prisma } from "@/lib/prisma";
 import { syncUserFromSupabase } from "@/lib/sync-user";
+
+// Re-export authOptions for backward compatibility
+export { authOptions } from "@/lib/nextauth";
 
 /**
  * Ошибка авторизации
