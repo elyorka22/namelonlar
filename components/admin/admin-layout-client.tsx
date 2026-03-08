@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard,
   FileText,
@@ -28,25 +29,33 @@ export function AdminLayoutClient({
   const [status, setStatus] = useState<"loading" | "ok" | "unauthorized">("loading");
 
   useEffect(() => {
-    fetch("/api/auth/me", { credentials: "include" })
-      .then((res) => {
+    const doCheck = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers: HeadersInit = {};
+      if (session?.access_token) {
+        headers["Authorization"] = "Bearer " + session.access_token;
+        if (session.refresh_token) {
+          headers["X-Supabase-Refresh-Token"] = session.refresh_token;
+        }
+      }
+      try {
+        const res = await fetch("/api/auth/me", { credentials: "include", headers });
         if (res.status === 401) {
           window.location.href = "/auth/signin?callbackUrl=" + encodeURIComponent("/admin");
           return;
         }
-        return res.json();
-      })
-      .then((data) => {
-        if (!data) return;
-        if (!data.isAdmin) {
+        const data = await res.json();
+        if (!data?.isAdmin) {
           window.location.href = "/";
           return;
         }
         setStatus("ok");
-      })
-      .catch(() => {
+      } catch {
         window.location.href = "/auth/signin?callbackUrl=" + encodeURIComponent("/admin");
-      });
+      }
+    };
+    doCheck();
   }, []);
 
   if (status === "loading") {
