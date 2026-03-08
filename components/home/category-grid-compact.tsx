@@ -22,13 +22,23 @@ const categoryIcons: Record<string, string> = {
   transport: "🚲",
 };
 
-export function CategoryGridCompact({ categories }: CategoryGridCompactProps) {
-  if (categories.length === 0) {
-    return null;
-  }
+// Default categories to always show
+const defaultCategories = [
+  { id: "1", name: "Ko'chmas mulk", slug: "nedvizhimost" },
+  { id: "2", name: "Avtomobillar", slug: "avtomobili" },
+  { id: "3", name: "Elektronika", slug: "elektronika" },
+  { id: "4", name: "Ish", slug: "rabota" },
+  { id: "5", name: "Xizmatlar", slug: "uslugi" },
+  { id: "6", name: "Ijaraga olish", slug: "arenda" },
+  { id: "7", name: "Zapchastlar", slug: "zapchasti" },
+  { id: "8", name: "Odezhda", slug: "odezhda" },
+];
 
-  // Берем первые 8 категорий для компактной сетки
-  const displayCategories = categories.slice(0, 8);
+export function CategoryGridCompact({ categories }: CategoryGridCompactProps) {
+  // Always use categories from props if available, otherwise use default categories
+  const displayCategories = categories.length > 0 
+    ? categories.slice(0, 8) 
+    : defaultCategories.slice(0, 8);
 
   return (
     <div className="grid grid-cols-4 gap-2 md:gap-3">

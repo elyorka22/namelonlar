@@ -31,7 +31,10 @@ export default async function HomePage() {
       {/* Categories Grid */}
       <section className="py-4 md:py-6 bg-white">
         <div className="container mx-auto px-4">
-          <CategoryGridCompact categories={categories} />
+          <h2 className="text-lg md:text-xl font-bold mb-3 md:mb-4 text-gray-900">
+            Kategoriyalar
+          </h2>
+          <CategoryGridCompact categories={categories || []} />
         </div>
       </section>
 
