@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Heart, Eye } from "lucide-react";
 import { formatPrice, formatRelativeTime } from "@/lib/utils";
-import { toggleFavorite } from "@/app/actions/favorites";
+import { FavoriteButton } from "@/components/favorites/favorite-button";
 
 export const dynamic = 'force-dynamic';
 
@@ -136,15 +136,7 @@ export default async function FavoritesPage() {
                       >
                         <span>Ko'rish</span>
                       </Link>
-                      <form action={toggleFavorite.bind(null, favorite.listing.id)}>
-                        <button
-                          type="submit"
-                          className="flex items-center gap-2 px-4 py-2 border border-red-300 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
-                        >
-                          <Heart size={16} className="fill-current" />
-                          <span>Sevimlilardan olib tashlash</span>
-                        </button>
-                      </form>
+                      <RemoveFavoriteButton listingId={favorite.listing.id} />
                     </div>
                   </div>
                 </div>
