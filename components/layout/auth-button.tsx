@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -19,6 +19,7 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
   const [supabaseUser, setSupabaseUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [hasSeenAdmin, setHasSeenAdmin] = useState(false);
+  const roleFetchedRef = useRef(false);
 
   useEffect(() => {
     // Проверяем Supabase сессию
@@ -81,8 +82,23 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!supabaseUser && !session?.user) setHasSeenAdmin(false);
+    if (!supabaseUser && !session?.user) {
+      setHasSeenAdmin(false);
+      roleFetchedRef.current = false;
+    }
   }, [supabaseUser, session?.user]);
+
+  // Если сервер не передал isAdmin (например при клиентской навигации) — один раз запрашиваем роль
+  useEffect(() => {
+    if (loading || (!supabaseUser && !session?.user) || roleFetchedRef.current) return;
+    roleFetchedRef.current = true;
+    fetch("/api/auth/role")
+      .then((res) => res.json())
+      .then((data: { isAdmin?: boolean }) => {
+        if (data.isAdmin === true) setHasSeenAdmin(true);
+      })
+      .catch(() => {});
+  }, [loading, supabaseUser, session?.user]);
 
   // Проверяем сессию при изменении пути (например, после callback)
   useEffect(() => {
