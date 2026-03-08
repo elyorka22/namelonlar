@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, getSupabaseUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 import { syncUserFromSupabase } from "@/lib/sync-user";
 
 export const dynamic = 'force-dynamic';
