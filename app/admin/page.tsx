@@ -6,16 +6,22 @@ import { AdminRecentActivity } from "@/components/admin/admin-recent-activity";
 
 export const dynamic = "force-dynamic";
 
+const defaultStats = [0, 0, 0, 0, 0, 0] as const;
+
 export default async function AdminPage() {
-  // Авторизацию проверяет только layout — дублирующая проверка убрана, редиректа не будет
-  const stats = await prisma.$transaction([
-    prisma.listing.count(),
-    prisma.user.count(),
-    prisma.listing.count({ where: { status: "MODERATION" } }),
-    prisma.listing.count({ where: { status: "ACTIVE" } }),
-    prisma.category.count(),
-    prisma.listing.count({ where: { isVip: true } }),
-  ]);
+  let stats = defaultStats;
+  try {
+    stats = await prisma.$transaction([
+      prisma.listing.count(),
+      prisma.user.count(),
+      prisma.listing.count({ where: { status: "MODERATION" } }),
+      prisma.listing.count({ where: { status: "ACTIVE" } }),
+      prisma.category.count(),
+      prisma.listing.count({ where: { isVip: true } }),
+    ]);
+  } catch (err) {
+    console.error("[admin/page] Stats error:", err);
+  }
 
   return (
     <div>

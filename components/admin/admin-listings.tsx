@@ -4,7 +4,14 @@ import { Check, X, Eye } from "lucide-react";
 import { formatRelativeTime } from "@/lib/utils";
 
 export async function AdminListings() {
-  const listings = await prisma.listing.findMany({
+  let listings: Awaited<ReturnType<typeof prisma.listing.findMany<{
+    where: { status: "MODERATION" };
+    include: { user: { select: { name: true; email: true } }; category: true };
+    orderBy: { createdAt: "desc" };
+    take: 10;
+  }>>> = [];
+  try {
+    listings = await prisma.listing.findMany({
     where: {
       status: "MODERATION",
     },
@@ -22,6 +29,9 @@ export async function AdminListings() {
     },
     take: 10,
   });
+  } catch (err) {
+    console.error("[AdminListings]", err);
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6">

@@ -3,7 +3,16 @@ import { formatRelativeTime } from "@/lib/utils";
 import { FileText, User, FolderTree } from "lucide-react";
 
 export async function AdminRecentActivity() {
-  const [recentListings, recentUsers, recentCategories] = await Promise.all([
+  type ListingWithUser = Awaited<ReturnType<typeof prisma.listing.findMany<{
+    take: 5;
+    orderBy: { createdAt: "desc" };
+    include: { user: { select: { name: true; email: true } } };
+  }>>>;
+  let recentListings: ListingWithUser = [];
+  let recentUsers: Awaited<ReturnType<typeof prisma.user.findMany>> = [];
+  let recentCategories: Awaited<ReturnType<typeof prisma.category.findMany>> = [];
+  try {
+    const [listings, users, categories] = await Promise.all([
     prisma.listing.findMany({
       take: 5,
       orderBy: { createdAt: "desc" },
@@ -22,6 +31,12 @@ export async function AdminRecentActivity() {
       orderBy: { createdAt: "desc" },
     }),
   ]);
+    recentListings = listings;
+    recentUsers = users;
+    recentCategories = categories;
+  } catch (err) {
+    console.error("[AdminRecentActivity]", err);
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">

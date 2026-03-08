@@ -2,7 +2,13 @@ import { prisma } from "@/lib/prisma";
 import { formatRelativeTime } from "@/lib/utils";
 
 export async function AdminUsers() {
-  const users = await prisma.user.findMany({
+  let users: Awaited<ReturnType<typeof prisma.user.findMany<{
+    include: { _count: { select: { listings: true } } };
+    orderBy: { createdAt: "desc" };
+    take: 10;
+  }>>> = [];
+  try {
+    users = await prisma.user.findMany({
     include: {
       _count: {
         select: {
@@ -15,6 +21,9 @@ export async function AdminUsers() {
     },
     take: 10,
   });
+  } catch (err) {
+    console.error("[AdminUsers]", err);
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-6">
