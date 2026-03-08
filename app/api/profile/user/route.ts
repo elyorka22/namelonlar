@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser, getSupabaseUser } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 import { syncUserFromSupabase } from "@/lib/sync-user";
 
 export const dynamic = 'force-dynamic';
