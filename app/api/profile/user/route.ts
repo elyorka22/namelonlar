@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       // Возвращаем данные из Supabase
       user = {
         id: currentUser.id,
-        email: currentUser.email,
+        email: currentUser.email ?? null,
         name: currentUser.name,
         image: currentUser.image,
         password: null, // Пароль хранится только в Prisma
