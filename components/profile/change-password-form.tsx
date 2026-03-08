@@ -50,38 +50,73 @@ export function ChangePasswordForm({ hasPassword }: ChangePasswordFormProps) {
       return;
     }
 
-    try {
-      const response = await fetch("/api/profile/password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentPassword: hasPassword ? formData.currentPassword : undefined,
-          newPassword: formData.newPassword,
-        }),
-      });
+    // Пробуем с retry логикой (максимум 3 попытки)
+    let lastError: any = null;
+    let success = false;
+    
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`[CHANGE-PASSWORD] Attempt ${attempt}/3`);
+        
+        const response = await fetch("/api/profile/password", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include", // Важно: отправляем cookies
+          body: JSON.stringify({
+            currentPassword: hasPassword ? formData.currentPassword : undefined,
+            newPassword: formData.newPassword,
+          }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || "Parolni o'zgartirishda xatolik");
+        if (!response.ok) {
+          // Если 401, пробуем еще раз (возможно синхронизация в процессе)
+          if (response.status === 401 && attempt < 3) {
+            console.log(`[CHANGE-PASSWORD] 401 on attempt ${attempt}, retrying...`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+            lastError = new Error(data.error || "Авторизация требуется");
+            continue;
+          }
+          
+          throw new Error(data.error || "Parolni o'zgartirishda xatolik");
+        }
+
+        // Успех!
+        setSuccess(true);
+        setFormData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+
+        // Обновляем страницу через 2 секунды
+        setTimeout(() => {
+          router.refresh();
+        }, 2000);
+        
+        success = true;
+        break;
+      } catch (err: any) {
+        lastError = err;
+        console.error(`[CHANGE-PASSWORD] Attempt ${attempt} failed:`, err.message);
+        
+        // Если это не 401 или последняя попытка, показываем ошибку
+        if (attempt === 3 || !err.message?.includes("Авторизация")) {
+          setError(err.message || "Xatolik yuz berdi. Qayta urinib ko'ring.");
+          break;
+        }
+        
+        // Небольшая задержка перед повтором
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
       }
-
-      setSuccess(true);
-      setFormData({
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      });
-
-      // Обновляем страницу через 2 секунды
-      setTimeout(() => {
-        router.refresh();
-      }, 2000);
-    } catch (err: any) {
-      setError(err.message || "Xatolik yuz berdi. Qayta urinib ko'ring.");
-    } finally {
-      setLoading(false);
     }
+    
+    if (!success && lastError) {
+      setError(lastError.message || "Xatolik yuz berdi. Qayta urinib ko'ring.");
+    }
+    
+    setLoading(false);
   };
 
   return (

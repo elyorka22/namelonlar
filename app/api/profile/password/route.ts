@@ -4,6 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { syncUserFromSupabase } from "@/lib/sync-user";
 
 export const dynamic = 'force-dynamic';
 
@@ -64,21 +65,20 @@ export async function POST(request: NextRequest) {
         if (session?.user) {
           console.log("[API-PASSWORD] Found user via Supabase session:", session.user.email);
           
-          // Находим пользователя в Prisma
-          const prismaUser = await prisma.user.findUnique({
-            where: { email: session.user.email! },
-          });
-          
-          if (prismaUser) {
+          // ВАЖНО: Используем функцию синхронизации для гарантированной синхронизации
+          const syncResult = await syncUserFromSupabase(session.user);
+          if (syncResult.success && syncResult.user) {
             currentUser = {
-              id: prismaUser.id,
-              email: prismaUser.email,
-              name: prismaUser.name,
-              image: prismaUser.image,
+              id: syncResult.user.id,
+              email: syncResult.user.email,
+              name: syncResult.user.name,
+              image: syncResult.user.image,
             };
-            console.log("[API-PASSWORD] ✅ User found via Supabase session:", currentUser.email);
-          } else {
-            console.log("[API-PASSWORD] ❌ User not found in Prisma");
+            if (syncResult.created) {
+              console.log("[API-PASSWORD] ✅ User was missing in Prisma, synced now:", currentUser.id);
+            } else {
+              console.log("[API-PASSWORD] ✅ User found via Supabase session:", currentUser.email);
+            }
           }
         } else {
           // Пробуем getUser
@@ -88,21 +88,20 @@ export async function POST(request: NextRequest) {
           if (supabaseUser) {
             console.log("[API-PASSWORD] Found user via Supabase getUser:", supabaseUser.email);
             
-            // Находим пользователя в Prisma
-            const prismaUser = await prisma.user.findUnique({
-              where: { email: supabaseUser.email! },
-            });
-            
-            if (prismaUser) {
+            // ВАЖНО: Используем функцию синхронизации для гарантированной синхронизации
+            const syncResult = await syncUserFromSupabase(supabaseUser);
+            if (syncResult.success && syncResult.user) {
               currentUser = {
-                id: prismaUser.id,
-                email: prismaUser.email,
-                name: prismaUser.name,
-                image: prismaUser.image,
+                id: syncResult.user.id,
+                email: syncResult.user.email,
+                name: syncResult.user.name,
+                image: syncResult.user.image,
               };
-              console.log("[API-PASSWORD] ✅ User found via Supabase getUser:", currentUser.email);
-            } else {
-              console.log("[API-PASSWORD] ❌ User not found in Prisma");
+              if (syncResult.created) {
+                console.log("[API-PASSWORD] ✅ User was missing in Prisma, synced now:", currentUser.id);
+              } else {
+                console.log("[API-PASSWORD] ✅ User found via Supabase getUser:", currentUser.email);
+              }
             }
           } else {
             console.log("[API-PASSWORD] ❌ No Supabase user found");
