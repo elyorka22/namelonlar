@@ -27,32 +27,40 @@ export class AuthError extends Error {
 }
 
 /**
- * Получить текущего пользователя
- * 
- * ВАЖНО: Использует только Supabase Auth для проверки авторизации
- * Не зависит от наличия пользователя в Prisma
- * 
- * @returns Пользователь из Supabase или null
+ * Получить текущего пользователя.
+ * Та же логика, что в auth-helpers: сначала getUser() (обновляет токен), иначе getSession().
  */
 export async function getCurrentUser() {
-  // 1. Проверяем Supabase Auth (основной метод для Google OAuth)
   try {
     const supabase = await createClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    if (session?.user) {
-      syncUserFromSupabase(session.user).catch((error) => {
+    let user = (await supabase.auth.getUser()).data.user;
+    if (!user) {
+      const session = (await supabase.auth.getSession()).data.session;
+      user = session?.user ?? null;
+    }
+
+    if (user) {
+      syncUserFromSupabase(user).catch((error) => {
         console.error("[AUTH] Sync error (non-blocking):", error);
       });
-      const role = (session.user.app_metadata?.role as string) || "USER";
+      let role = (user.app_metadata?.role as string) || "USER";
+      if (role !== "ADMIN" && role !== "MODERATOR" && user.email) {
+        const prismaUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          select: { role: true },
+        });
+        if (prismaUser?.role === "ADMIN" || prismaUser?.role === "MODERATOR") {
+          role = prismaUser.role;
+        }
+      }
       return {
-        id: session.user.id,
-        email: session.user.email!,
-        name: session.user.user_metadata?.full_name ||
-              session.user.user_metadata?.name ||
+        id: user.id,
+        email: user.email!,
+        name: user.user_metadata?.full_name ||
+              user.user_metadata?.name ||
               null,
-        image: session.user.user_metadata?.avatar_url ||
-               session.user.user_metadata?.picture ||
+        image: user.user_metadata?.avatar_url ||
+               user.user_metadata?.picture ||
                null,
         role: role === "ADMIN" || role === "MODERATOR" ? role : "USER",
       };
@@ -61,7 +69,7 @@ export async function getCurrentUser() {
     console.error("[AUTH] Error checking Supabase session:", error);
   }
 
-  // 2. NextAuth (email/password) — роль из Prisma
+  // NextAuth (email/password) — роль из Prisma
   try {
     const session = await getServerSession(authOptions);
     if (session?.user) {
