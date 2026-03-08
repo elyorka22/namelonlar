@@ -9,33 +9,17 @@ import { syncUserFromSupabase } from "@/lib/sync-user";
  * Быстрая проверка авторизации через Supabase Auth (без Prisma)
  * Возвращает пользователя из Supabase, даже если его нет в Prisma
  * Это основной источник истины для проверки авторизации
+ * 
+ * ВАЖНО: Использует только getSession() для чтения cookies
+ * Не вызывает getUser() чтобы не обновлять токен на каждом запросе
  */
 export async function getSupabaseUser() {
   try {
     const supabase = await createClient();
     
-    // Сначала пробуем getSession (быстрее)
-    let { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
-    // Если getSession не нашел, пробуем getUser (может обновить токен)
-    if (!session?.user && !sessionError) {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (user) {
-        // Если getUser нашел пользователя, получаем сессию
-        const { data: { session: newSession } } = await supabase.auth.getSession();
-        if (newSession?.user) {
-          session = newSession;
-        } else {
-          // Если сессии нет, но пользователь есть, создаем минимальный объект
-          return {
-            id: user.id,
-            email: user.email!,
-            name: user.user_metadata?.full_name || user.user_metadata?.name || null,
-            image: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
-          };
-        }
-      }
-    }
+    // Используем только getSession() - это читает cookies без обновления токена
+    // getUser() обновляет токен и может вызывать проблемы при частых вызовах
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (session?.user) {
       return {
@@ -48,6 +32,11 @@ export async function getSupabaseUser() {
                session.user.user_metadata?.picture || 
                null,
       };
+    }
+    
+    // Если getSession не нашел, но ошибки нет - пользователь не авторизован
+    if (sessionError && sessionError.message !== "Auth session missing!") {
+      console.error("[AUTH] Error in getSupabaseUser:", sessionError.message);
     }
   } catch (error) {
     console.error("[AUTH] Error in getSupabaseUser:", error);

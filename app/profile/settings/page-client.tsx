@@ -43,6 +43,8 @@ export default function ProfileSettingsPageClient() {
         });
 
         if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: response.statusText }));
+          
           if (response.status === 401) {
             console.log("[PROFILE-SETTINGS-CLIENT] Unauthorized (401), checking session again...");
             
@@ -52,7 +54,7 @@ export default function ProfileSettingsPageClient() {
               console.log("[PROFILE-SETTINGS-CLIENT] Session exists, but API returned 401. Retrying API call...");
               
               // Пробуем еще раз через небольшую задержку (возможно синхронизация в процессе)
-              await new Promise(resolve => setTimeout(resolve, 1000));
+              await new Promise(resolve => setTimeout(resolve, 500));
               
               const retryResponse = await fetch("/api/profile/user", {
                 method: "GET",
@@ -66,13 +68,21 @@ export default function ProfileSettingsPageClient() {
                 setLoading(false);
                 return;
               }
+              
+              // Если retry тоже не сработал, но сессия есть - показываем ошибку, но не редиректим
+              console.error("[PROFILE-SETTINGS-CLIENT] Retry failed, but session exists. This might be a server-side issue.");
+              setError("Server xatolik. Iltimos, sahifani yangilang.");
+              setLoading(false);
+              return;
             }
             
-            console.log("[PROFILE-SETTINGS-CLIENT] Still unauthorized after retry, redirecting to signin");
+            // Если сессии нет - редиректим
+            console.log("[PROFILE-SETTINGS-CLIENT] No session found, redirecting to signin");
             router.push("/auth/signin");
             return;
           }
-          throw new Error(`Failed to load user: ${response.statusText}`);
+          
+          throw new Error(errorData.error || `Failed to load user: ${response.statusText}`);
         }
 
         const userData = await response.json();

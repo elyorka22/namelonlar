@@ -30,37 +30,27 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // ВАЖНО: Обновляем сессию Supabase ПЕРЕД отправкой ответа
-  // Согласно документации Supabase SSR, нужно вызывать getUser() для обновления сессии
+  // ВАЖНО: Обновляем сессию Supabase только если нужно
+  // Не вызываем getUser() на каждом запросе - это может вызывать проблемы с cookies
+  // Вместо этого просто обновляем cookies через getSession() если они есть
   try {
-    // Вызываем getUser() - это обновит cookies если сессия изменилась или истекла
-    const { data: { user }, error } = await supabase.auth.getUser();
+    // Только проверяем сессию, не обновляем токен на каждом запросе
+    const { data: { session } } = await supabase.auth.getSession();
     
-    if (user) {
-      // Сессия активна, cookies обновлены через getUser()
-      // Дополнительно вызываем getSession() для синхронизации
-      await supabase.auth.getSession();
-      
-      // ВАЖНО: Синхронизируем пользователя в Prisma если его там нет
-      // Это гарантирует, что пользователь будет синхронизирован при первом запросе после авторизации
+    if (session?.user) {
+      // Сессия активна, синхронизируем пользователя в Prisma если нужно
       // Делаем это только для определенных путей (профиль, API) чтобы не замедлять все запросы
       const path = request.nextUrl.pathname;
       if (path.startsWith("/profile") || path.startsWith("/api/profile") || path.startsWith("/admin")) {
         // Запускаем синхронизацию асинхронно, не блокируя запрос
-        // getCurrentUser() также попробует синхронизировать, если это не успело
-        syncUserFromSupabase(user).then((syncResult) => {
+        syncUserFromSupabase(session.user).then((syncResult) => {
           if (syncResult.created) {
-            console.log("[MIDDLEWARE] ✅ User synced to Prisma (async):", user.email);
+            console.log("[MIDDLEWARE] ✅ User synced to Prisma (async):", session.user.email);
           }
         }).catch((syncError) => {
           // Игнорируем ошибки - getCurrentUser() обработает
           console.log("[MIDDLEWARE] Sync error (will be handled by getCurrentUser)");
         });
-      }
-    } else if (error) {
-      // Игнорируем ошибки отсутствия сессии - это нормально для неавторизованных пользователей
-      if (error.message !== "Auth session missing!") {
-        console.log("[MIDDLEWARE] Supabase getUser error:", error.message);
       }
     }
   } catch (error) {
