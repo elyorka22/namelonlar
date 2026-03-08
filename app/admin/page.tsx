@@ -6,10 +6,12 @@ import { AdminRecentActivity } from "@/components/admin/admin-recent-activity";
 
 export const dynamic = "force-dynamic";
 
-const defaultStats = [0, 0, 0, 0, 0, 0] as const;
+const defaultStats: [number, number, number, number, number, number] = [
+  0, 0, 0, 0, 0, 0,
+];
 
 export default async function AdminPage() {
-  let stats = defaultStats;
+  let stats: [number, number, number, number, number, number] = defaultStats;
   try {
     stats = await prisma.$transaction([
       prisma.listing.count(),
