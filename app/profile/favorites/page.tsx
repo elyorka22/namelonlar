@@ -19,34 +19,24 @@ export default async function FavoritesPage() {
   }
 
   // Получаем любимые объявления пользователя с обработкой ошибок
-  let favorites: Array<{
-    id: string;
-    userId: string;
-    listingId: string;
-    createdAt: Date;
-    listing: {
-      id: string;
-      title: string;
-      description: string;
-      price: number | null;
-      currency: string;
-      images: string[];
-      views: number;
-      status: string;
-      isVip: boolean;
-      isTop: boolean;
-      createdAt: Date;
-      category: {
-        id: string;
-        name: string;
-      };
-      user: {
-        id: string;
-        name: string | null;
-        image: string | null;
+  type FavoriteWithListing = Awaited<ReturnType<typeof prisma.favorite.findMany<{
+    include: {
+      listing: {
+        include: {
+          category: true;
+          user: {
+            select: {
+              id: true;
+              name: true;
+              image: true;
+            };
+          };
+        };
       };
     };
-  }> = [];
+  }>>>;
+  
+  let favorites: FavoriteWithListing = [];
   try {
     favorites = await prisma.favorite.findMany({
       where: { userId: currentUser.id },

@@ -18,23 +18,13 @@ export default async function MyListingsPage() {
   }
 
   // Получаем объявления пользователя с обработкой ошибок
-  let listings: Array<{
-    id: string;
-    title: string;
-    description: string;
-    price: number | null;
-    currency: string;
-    images: string[];
-    views: number;
-    status: string;
-    isVip: boolean;
-    isTop: boolean;
-    createdAt: Date;
-    category: {
-      id: string;
-      name: string;
+  type ListingWithCategory = Awaited<ReturnType<typeof prisma.listing.findMany<{
+    include: {
+      category: true;
     };
-  }> = [];
+  }>>>;
+  
+  let listings: ListingWithCategory = [];
   try {
     listings = await prisma.listing.findMany({
       where: { userId: currentUser.id },
