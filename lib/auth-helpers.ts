@@ -5,24 +5,25 @@ import { prisma } from "@/lib/prisma";
 import { syncUserFromSupabase } from "@/lib/sync-user";
 
 /**
- * Проверка авторизации через Supabase Auth (без Prisma).
- * Сначала getSession(); если сессии нет — getUser() для обновления токена (нужен setAll в server client).
+ * Проверка авторизации через Supabase Auth.
+ * Сначала getUser() — проверяет и при необходимости обновляет токен (setAll в server client).
+ * Если не сработало — getSession() из cookie (на случай офлайна/ошибки сети).
  */
 export async function getSupabaseUser() {
   try {
     const supabase = await createClient();
 
-    let session = (await supabase.auth.getSession()).data.session;
-    if (!session?.user) {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) session = { user } as typeof session;
+    let user = (await supabase.auth.getUser()).data.user;
+    if (!user) {
+      const session = (await supabase.auth.getSession()).data.session;
+      user = session?.user ?? null;
     }
 
-    if (session?.user) {
-      let role = (session.user.app_metadata?.role as string) || "USER";
-      if (role !== "ADMIN" && role !== "MODERATOR" && session.user.email) {
+    if (user) {
+      let role = (user.app_metadata?.role as string) || "USER";
+      if (role !== "ADMIN" && role !== "MODERATOR" && user.email) {
         const prismaUser = await prisma.user.findUnique({
-          where: { email: session.user.email },
+          where: { email: user.email },
           select: { role: true },
         });
         if (prismaUser?.role === "ADMIN" || prismaUser?.role === "MODERATOR") {
@@ -30,13 +31,13 @@ export async function getSupabaseUser() {
         }
       }
       return {
-        id: session.user.id,
-        email: session.user.email!,
-        name: session.user.user_metadata?.full_name ||
-              session.user.user_metadata?.name ||
+        id: user.id,
+        email: user.email!,
+        name: user.user_metadata?.full_name ||
+              user.user_metadata?.name ||
               null,
-        image: session.user.user_metadata?.avatar_url ||
-              session.user.user_metadata?.picture ||
+        image: user.user_metadata?.avatar_url ||
+              user.user_metadata?.picture ||
               null,
         role: role === "ADMIN" || role === "MODERATOR" ? role : "USER",
       };

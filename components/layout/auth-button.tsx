@@ -154,13 +154,14 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
     if (showAdmin) {
       return (
         <>
-          <a
-            href="/admin"
+          <button
+            type="button"
+            onClick={() => { window.location.href = "/admin"; }}
             className="hidden md:flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors font-medium"
           >
             <LayoutDashboard size={20} />
             <span>Boshqaruv paneli</span>
-          </a>
+          </button>
           <Link
             href="/listing/new"
             className="hidden md:flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
@@ -183,13 +184,14 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
     return (
       <>
         {showAdmin && (
-          <a
-            href="/admin"
+          <button
+            type="button"
+            onClick={() => { window.location.href = "/admin"; }}
             className="hidden md:flex items-center gap-2 bg-amber-500 text-white px-4 py-2 rounded-lg hover:bg-amber-600 transition-colors font-medium"
           >
             <LayoutDashboard size={20} />
             <span>Boshqaruv paneli</span>
-          </a>
+          </button>
         )}
         <Link
           href="/listing/new"

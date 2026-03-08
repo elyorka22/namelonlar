@@ -137,14 +137,17 @@ export function UserMenu({ user, isAdmin = false }: UserMenuProps) {
                 <span>Sozlamalar</span>
               </button>
               {isAdmin && (
-                <a
-                  href="/admin"
-                  onClick={() => setIsOpen(false)}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsOpen(false);
+                    window.location.href = "/admin";
+                  }}
                   className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left text-primary-600 font-medium"
                 >
                   <LayoutDashboard size={18} />
                   <span>Boshqaruv paneli</span>
-                </a>
+                </button>
               )}
               <button
                 onClick={async () => {

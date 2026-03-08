@@ -41,10 +41,10 @@ export async function middleware(request: NextRequest) {
   // Только обновляем cookies если нужно
   // Не проверяем авторизацию - это делают страницы и API routes
   try {
-    // Просто вызываем getSession() для обновления cookies если сессия есть
-    await supabase.auth.getSession();
-  } catch (error) {
-    // Игнорируем ошибки - это нормально для неавторизованных пользователей
+    // getUser() проверяет и при необходимости обновляет токен, setAll сохранит новые cookies в ответ
+    await supabase.auth.getUser();
+  } catch {
+    // Не авторизован или ошибка — не блокируем запрос
   }
 
   return supabaseResponse;
