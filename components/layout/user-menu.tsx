@@ -5,7 +5,6 @@ import { signOut as nextAuthSignOut } from "next-auth/react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { User, Settings, Heart, FileText, LogOut, ChevronDown, LayoutDashboard } from "lucide-react";
-import Link from "next/link";
 import Image from "next/image";
 
 interface UserMenuProps {
@@ -138,14 +137,14 @@ export function UserMenu({ user, isAdmin = false }: UserMenuProps) {
                 <span>Sozlamalar</span>
               </button>
               {isAdmin && (
-                <Link
+                <a
                   href="/admin"
                   onClick={() => setIsOpen(false)}
                   className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left text-primary-600 font-medium"
                 >
                   <LayoutDashboard size={18} />
                   <span>Boshqaruv paneli</span>
-                </Link>
+                </a>
               )}
               <button
                 onClick={async () => {
