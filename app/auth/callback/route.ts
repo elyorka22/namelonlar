@@ -2,7 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { syncUserWithRetry } from "@/lib/sync-user";
 
 export const dynamic = 'force-dynamic';
 
@@ -50,54 +50,25 @@ export async function GET(request: NextRequest) {
     if (!error && data.user) {
       console.log("[CALLBACK] User authenticated:", data.user.email);
       
-      // Синхронизируем пользователя с Prisma
-      try {
-        const existingUser = await prisma.user.findUnique({
+      // ВАЖНО: Синхронизируем пользователя с Prisma с retry логикой
+      const syncResult = await syncUserWithRetry(data.user, 3);
+      
+      if (syncResult.success) {
+        console.log("[CALLBACK] ✅ User synced to Prisma:", syncResult.user.id);
+        
+        // Проверяем, что синхронизация действительно прошла
+        const verifyUser = await prisma.user.findUnique({
           where: { email: data.user.email! },
         });
-
-        if (!existingUser) {
-          console.log("[CALLBACK] Creating user in Prisma:", data.user.email);
-          // Создаем пользователя в Prisma
-          await prisma.user.create({
-            data: {
-              email: data.user.email!,
-              name:
-                data.user.user_metadata?.full_name ||
-                data.user.user_metadata?.name ||
-                null,
-              image:
-                data.user.user_metadata?.avatar_url ||
-                data.user.user_metadata?.picture ||
-                null,
-              emailVerified: data.user.email_confirmed_at
-                ? new Date(data.user.email_confirmed_at)
-                : null,
-            },
-          });
+        
+        if (!verifyUser) {
+          console.error("[CALLBACK] ⚠️ WARNING: User sync reported success but user not found in Prisma!");
         } else {
-          console.log("[CALLBACK] Updating user in Prisma:", data.user.email);
-          // Обновляем информацию о пользователе
-          await prisma.user.update({
-            where: { email: data.user.email! },
-            data: {
-              name:
-                data.user.user_metadata?.full_name ||
-                data.user.user_metadata?.name ||
-                existingUser.name,
-              image:
-                data.user.user_metadata?.avatar_url ||
-                data.user.user_metadata?.picture ||
-                existingUser.image,
-              emailVerified: data.user.email_confirmed_at
-                ? new Date(data.user.email_confirmed_at)
-                : existingUser.emailVerified,
-            },
-          });
+          console.log("[CALLBACK] ✅ Verified: User exists in Prisma:", verifyUser.id);
         }
-      } catch (error) {
-        console.error("[CALLBACK] Error syncing user to Prisma:", error);
-        // Продолжаем даже если синхронизация не удалась
+      } else {
+        console.error("[CALLBACK] ❌ Failed to sync user to Prisma after retries");
+        // Продолжаем - getCurrentUser() попробует синхронизировать позже
       }
       
       // ВАЖНО: Вызываем getSession после exchangeCodeForSession

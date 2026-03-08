@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { cookies } from "next/headers";
+import { syncUserFromSupabase } from "@/lib/sync-user";
 
 /**
  * Получить текущего пользователя (работает с NextAuth и Supabase)
@@ -52,62 +53,20 @@ export async function getCurrentUser() {
       console.log("[AUTH] ✅ Supabase session found for user:", session.user.email);
       console.log("[AUTH] Session expires at:", session.expires_at);
       
-      // Проверяем, есть ли пользователь в Prisma
-      let prismaUser = await prisma.user.findUnique({
-        where: { email: session.user.email! },
-      });
-
-      // Если пользователя нет в Prisma, создаем его (ВАЖНО: синхронизация)
-      if (!prismaUser) {
-        console.log("[AUTH] ⚠️ User not found in Prisma, creating now:", session.user.email);
-        console.log("[AUTH] This should have been done in /auth/callback, but syncing now...");
-        try {
-          prismaUser = await prisma.user.create({
-            data: {
-              email: session.user.email!,
-              name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || null,
-              image: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null,
-              emailVerified: session.user.email_confirmed_at ? new Date(session.user.email_confirmed_at) : null,
-            },
-          });
-          console.log("[AUTH] ✅ User created in Prisma:", prismaUser.id);
-        } catch (createError: any) {
-          // Если пользователь уже существует (race condition), получаем его
-          if (createError.code === 'P2002') {
-            console.log("[AUTH] User already exists (race condition), fetching:", session.user.email);
-            prismaUser = await prisma.user.findUnique({
-              where: { email: session.user.email! },
-            });
-          } else {
-            console.error("[AUTH] ❌ Error creating user in Prisma:", createError);
-            throw createError;
-          }
-        }
+      // Используем централизованную функцию синхронизации
+      const syncResult = await syncUserFromSupabase(session.user);
+      
+      if (!syncResult.success || !syncResult.user) {
+        console.error("[AUTH] ❌ Failed to sync user from Supabase to Prisma:", syncResult.error);
+        // Продолжаем - попробуем getUser fallback
       } else {
-        // Обновляем информацию о пользователе если она изменилась
-        const needsUpdate = 
-          (session.user.user_metadata?.full_name || session.user.user_metadata?.name) !== prismaUser.name ||
-          (session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture) !== prismaUser.image;
+        const prismaUser = syncResult.user;
         
-        if (needsUpdate) {
-          console.log("[AUTH] Updating user info in Prisma:", session.user.email);
-          try {
-            prismaUser = await prisma.user.update({
-              where: { email: session.user.email! },
-              data: {
-                name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || prismaUser.name,
-                image: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || prismaUser.image,
-                emailVerified: session.user.email_confirmed_at ? new Date(session.user.email_confirmed_at) : prismaUser.emailVerified,
-              },
-            });
-          } catch (updateError: any) {
-            console.error("[AUTH] Error updating user:", updateError);
-            // Продолжаем с существующими данными
-          }
+        if (syncResult.created) {
+          console.log("[AUTH] ⚠️ User was missing in Prisma, created now:", prismaUser.id);
+          console.log("[AUTH] This should have been done in /auth/callback, but synced now as fallback");
         }
-      }
 
-      if (prismaUser) {
         console.log("[AUTH] ✅ Returning user from Supabase session:", prismaUser.id, prismaUser.email);
         return {
           id: prismaUser.id,
@@ -115,8 +74,6 @@ export async function getCurrentUser() {
           name: prismaUser.name,
           image: prismaUser.image,
         };
-      } else {
-        console.log("[AUTH] ❌ Failed to create/find user in Prisma");
       }
     } else if (sessionError) {
       console.log("[AUTH] ❌ Supabase session error:", sessionError.message);
@@ -138,39 +95,16 @@ export async function getCurrentUser() {
       if (supabaseUser) {
         console.log("[AUTH] ✅ Supabase user found via getUser:", supabaseUser.email);
         
-        // Проверяем, есть ли пользователь в Prisma
-        let prismaUser = await prisma.user.findUnique({
-          where: { email: supabaseUser.email! },
-        });
-
-        // Если пользователя нет в Prisma, создаем его (ВАЖНО: синхронизация)
-        if (!prismaUser) {
-          console.log("[AUTH] ⚠️ User not found in Prisma (getUser fallback), creating now:", supabaseUser.email);
-          try {
-            prismaUser = await prisma.user.create({
-              data: {
-                email: supabaseUser.email!,
-                name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.name || null,
-                image: supabaseUser.user_metadata?.avatar_url || supabaseUser.user_metadata?.picture || null,
-                emailVerified: supabaseUser.email_confirmed_at ? new Date(supabaseUser.email_confirmed_at) : null,
-              },
-            });
-            console.log("[AUTH] ✅ User created in Prisma (getUser fallback):", prismaUser.id);
-          } catch (createError: any) {
-            // Если пользователь уже существует (race condition), получаем его
-            if (createError.code === 'P2002') {
-              console.log("[AUTH] User already exists (race condition), fetching:", supabaseUser.email);
-              prismaUser = await prisma.user.findUnique({
-                where: { email: supabaseUser.email! },
-              });
-            } else {
-              console.error("[AUTH] ❌ Error creating user in Prisma (getUser fallback):", createError);
-              throw createError;
-            }
+        // Используем централизованную функцию синхронизации
+        const syncResult = await syncUserFromSupabase(supabaseUser);
+        
+        if (syncResult.success && syncResult.user) {
+          const prismaUser = syncResult.user;
+          
+          if (syncResult.created) {
+            console.log("[AUTH] ⚠️ User was missing in Prisma (getUser fallback), created now:", prismaUser.id);
           }
-        }
-
-        if (prismaUser) {
+          
           console.log("[AUTH] ✅ Returning user from Supabase getUser:", prismaUser.id, prismaUser.email);
           return {
             id: prismaUser.id,
@@ -179,7 +113,7 @@ export async function getCurrentUser() {
             image: prismaUser.image,
           };
         } else {
-          console.log("[AUTH] ❌ Failed to create/find user in Prisma via getUser");
+          console.error("[AUTH] ❌ Failed to sync user from Supabase to Prisma (getUser fallback):", syncResult.error);
         }
       } else if (userError) {
         console.log("[AUTH] ❌ Supabase getUser error:", userError.message);
