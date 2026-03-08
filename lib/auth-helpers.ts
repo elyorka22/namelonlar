@@ -2,25 +2,22 @@ import { createClient } from "@/lib/supabase/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { cookies } from "next/headers";
 import { syncUserFromSupabase } from "@/lib/sync-user";
 
 /**
- * Быстрая проверка авторизации через Supabase Auth (без Prisma)
- * Возвращает пользователя из Supabase, даже если его нет в Prisma
- * Это основной источник истины для проверки авторизации
- * 
- * ВАЖНО: Использует только getSession() для чтения cookies
- * Не вызывает getUser() чтобы не обновлять токен на каждом запросе
+ * Проверка авторизации через Supabase Auth (без Prisma).
+ * Сначала getSession(); если сессии нет — getUser() для обновления токена (нужен setAll в server client).
  */
 export async function getSupabaseUser() {
   try {
     const supabase = await createClient();
-    
-    // Используем только getSession() - это читает cookies без обновления токена
-    // getUser() обновляет токен и может вызывать проблемы при частых вызовах
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    
+
+    let session = (await supabase.auth.getSession()).data.session;
+    if (!session?.user) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) session = { user } as typeof session;
+    }
+
     if (session?.user) {
       let role = (session.user.app_metadata?.role as string) || "USER";
       if (role !== "ADMIN" && role !== "MODERATOR" && session.user.email) {
@@ -43,11 +40,6 @@ export async function getSupabaseUser() {
               null,
         role: role === "ADMIN" || role === "MODERATOR" ? role : "USER",
       };
-    }
-    
-    // Если getSession не нашел, но ошибки нет - пользователь не авторизован
-    if (sessionError && sessionError.message !== "Auth session missing!") {
-      console.error("[AUTH] Error in getSupabaseUser:", sessionError.message);
     }
   } catch (error) {
     console.error("[AUTH] Error in getSupabaseUser:", error);

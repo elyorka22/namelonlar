@@ -16,8 +16,15 @@ export async function createClient() {
         getAll() {
           return cookieStore.getAll();
         },
-        // setAll опущен - Server Components не могут устанавливать cookies
-        // Cookies обновляются в middleware
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            );
+          } catch {
+            // В Server Components может выбросить — middleware подхватит обновление
+          }
+        },
       },
     }
   );
