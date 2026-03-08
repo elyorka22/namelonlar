@@ -3,12 +3,13 @@ import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import Image from "next/image";
-import { Plus, Edit, Eye, Trash2 } from "lucide-react";
+import { Heart, Eye } from "lucide-react";
 import { formatPrice, formatRelativeTime } from "@/lib/utils";
+import { toggleFavorite } from "@/app/actions/favorites";
 
 export const dynamic = 'force-dynamic';
 
-export default async function MyListingsPage() {
+export default async function FavoritesPage() {
   // Используем единую систему авторизации
   let currentUser;
   try {
@@ -17,10 +18,22 @@ export default async function MyListingsPage() {
     redirect("/auth/signin");
   }
 
-  const listings = await prisma.listing.findMany({
+  // Получаем любимые объявления пользователя
+  const favorites = await prisma.favorite.findMany({
     where: { userId: currentUser.id },
     include: {
-      category: true,
+      listing: {
+        include: {
+          category: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
+      },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -29,41 +42,35 @@ export default async function MyListingsPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Mening e'lonlarim</h1>
-          <Link
-            href="/listing/new"
-            className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            <Plus size={20} />
-            <span>Yangi e'lon</span>
-          </Link>
+          <h1 className="text-3xl font-bold text-gray-900">Sevimlilar</h1>
         </div>
 
-        {listings.length === 0 ? (
+        {favorites.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+            <Heart size={64} className="mx-auto text-gray-300 mb-4" />
             <p className="text-gray-500 text-lg mb-4">
-              Sizda hali e'lonlar yo'q
+              Sizda hali sevimli e'lonlar yo'q
             </p>
             <Link
-              href="/listing/new"
+              href="/"
               className="inline-block bg-primary-600 text-white px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors"
             >
-              Birinchi e'lonni yaratish
+              E'lonlar bo'limiga o'tish
             </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4">
-            {listings.map((listing) => (
+            {favorites.map((favorite) => (
               <div
-                key={listing.id}
+                key={favorite.id}
                 className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-all"
               >
                 <div className="flex gap-6">
                   <div className="relative w-32 h-32 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                    {listing.images && listing.images.length > 0 ? (
+                    {favorite.listing.images && favorite.listing.images.length > 0 ? (
                       <Image
-                        src={listing.images[0]}
-                        alt={listing.title}
+                        src={favorite.listing.images[0]}
+                        alt={favorite.listing.title}
                         fill
                         className="object-cover"
                       />
@@ -77,63 +84,67 @@ export default async function MyListingsPage() {
                     <div className="flex items-start justify-between mb-2">
                       <div>
                         <Link
-                          href={`/listing/${listing.id}`}
+                          href={`/listing/${favorite.listing.id}`}
                           className="text-xl font-semibold text-gray-900 hover:text-primary-600 transition-colors"
                         >
-                          {listing.title}
+                          {favorite.listing.title}
                         </Link>
                         <p className="text-sm text-gray-500 mt-1">
-                          {listing.category.name}
+                          {favorite.listing.category.name}
                         </p>
                       </div>
                       <div className="flex items-center gap-2">
-                        {listing.isVip && (
+                        {favorite.listing.isVip && (
                           <span className="bg-primary-500 text-white px-2 py-1 rounded text-xs font-bold">
                             VIP
                           </span>
                         )}
-                        {listing.isTop && (
+                        {favorite.listing.isTop && (
                           <span className="bg-yellow-500 text-white px-2 py-1 rounded text-xs font-bold">
                             TOP
                           </span>
                         )}
                         <span
                           className={`px-2 py-1 rounded text-xs font-semibold ${
-                            listing.status === "ACTIVE"
+                            favorite.listing.status === "ACTIVE"
                               ? "bg-green-100 text-green-700"
-                              : listing.status === "MODERATION"
+                              : favorite.listing.status === "MODERATION"
                               ? "bg-yellow-100 text-yellow-700"
                               : "bg-gray-100 text-gray-700"
                           }`}
                         >
-                          {listing.status}
+                          {favorite.listing.status}
                         </span>
                       </div>
                     </div>
-                    {listing.price !== null && (
+                    {favorite.listing.price !== null && (
                       <p className="text-2xl font-bold text-primary-600 mb-2">
-                        {formatPrice(listing.price, listing.currency)}
+                        {formatPrice(favorite.listing.price, favorite.listing.currency)}
                       </p>
                     )}
                     <div className="flex items-center gap-4 text-sm text-gray-600 mb-4">
                       <div className="flex items-center gap-1">
                         <Eye size={16} />
-                        <span>{listing.views} ko'rish</span>
+                        <span>{favorite.listing.views} ko'rish</span>
                       </div>
-                      <span>{formatRelativeTime(listing.createdAt)}</span>
+                      <span>{formatRelativeTime(favorite.listing.createdAt)}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Link
-                        href={`/listing/${listing.id}/edit`}
-                        className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                        href={`/listing/${favorite.listing.id}`}
+                        className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                       >
-                        <Edit size={16} />
-                        <span>Tahrirlash</span>
+                        <span>Ko'rish</span>
                       </Link>
-                      <button className="flex items-center gap-2 px-4 py-2 border border-red-300 rounded-lg text-red-600 hover:bg-red-50 transition-colors">
-                        <Trash2 size={16} />
-                        <span>O'chirish</span>
-                      </button>
+                      <form action={toggleFavorite.bind(null, favorite.listing.id)}>
+                        <button
+                          type="submit"
+                          className="flex items-center gap-2 px-4 py-2 border border-red-300 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                          <Heart size={16} className="fill-current" />
+                          <span>Sevimlilardan olib tashlash</span>
+                        </button>
+                      </form>
                     </div>
                   </div>
                 </div>
