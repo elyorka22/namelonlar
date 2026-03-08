@@ -1,8 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 import {
   LayoutDashboard,
   FileText,
@@ -21,71 +19,14 @@ const navItems = [
   { href: "/admin/settings", icon: Settings, label: "Sozlamalar" },
 ];
 
+/**
+ * Кнопка «Boshqaruv paneli» показывается только админам — повторных проверок при входе нет.
+ */
 export function AdminLayoutClient({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [status, setStatus] = useState<"loading" | "ok" | "unauthorized">("loading");
-
-  useEffect(() => {
-    const supabase = createClient();
-
-    const doCheck = async (retryCount = 0): Promise<boolean> => {
-      const maxRetries = 2;
-      let session = (await supabase.auth.getSession()).data.session;
-      if (!session && retryCount < maxRetries) {
-        await new Promise((r) => setTimeout(r, 800));
-        session = (await supabase.auth.getSession()).data.session;
-      }
-      const headers: HeadersInit = {};
-      if (session?.access_token) {
-        headers["Authorization"] = "Bearer " + session.access_token;
-        if (session.refresh_token) {
-          headers["X-Supabase-Refresh-Token"] = session.refresh_token;
-        }
-      }
-      try {
-        const res = await fetch("/api/auth/me", { credentials: "include", headers });
-        if (res.status === 401) {
-          if (retryCount < maxRetries) {
-            await new Promise((r) => setTimeout(r, 1200));
-            return doCheck(retryCount + 1);
-          }
-          window.location.href = "/auth/signin?callbackUrl=" + encodeURIComponent("/admin");
-          return false;
-        }
-        const data = await res.json();
-        if (!data?.isAdmin) {
-          window.location.href = "/";
-          return false;
-        }
-        setStatus("ok");
-        return true;
-      } catch {
-        if (retryCount < maxRetries) {
-          await new Promise((r) => setTimeout(r, 1200));
-          return doCheck(retryCount + 1);
-        }
-        window.location.href = "/auth/signin?callbackUrl=" + encodeURIComponent("/admin");
-        return false;
-      }
-    };
-    doCheck();
-  }, []);
-
-  if (status === "loading") {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500">Yuklanmoqda...</div>
-      </div>
-    );
-  }
-
-  if (status !== "ok") {
-    return null;
-  }
-
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 shadow-sm">
