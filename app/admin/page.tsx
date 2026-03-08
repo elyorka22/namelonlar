@@ -1,20 +1,13 @@
-import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
 import { AdminStats } from "@/components/admin/admin-stats";
 import { AdminListings } from "@/components/admin/admin-listings";
 import { AdminUsers } from "@/components/admin/admin-users";
 import { AdminRecentActivity } from "@/components/admin/admin-recent-activity";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  // Проверяем авторизацию и роль администратора
-  try {
-    await requireAdmin();
-  } catch (error) {
-    redirect("/auth/signin");
-  }
+  // Авторизацию проверяет только layout — дублирующая проверка убрана, редиректа не будет
   const stats = await prisma.$transaction([
     prisma.listing.count(),
     prisma.user.count(),
