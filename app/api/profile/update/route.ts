@@ -69,11 +69,13 @@ export async function POST(request: NextRequest) {
           });
           
           if (prismaUser) {
+            const role: string = prismaUser.role === "ADMIN" || prismaUser.role === "MODERATOR" ? prismaUser.role : "USER";
             currentUser = {
               id: prismaUser.id,
               email: prismaUser.email,
               name: prismaUser.name,
               image: prismaUser.image,
+              role,
             };
             console.log("[API-UPDATE] ✅ User found via Supabase session:", currentUser.email);
           } else {
@@ -93,11 +95,13 @@ export async function POST(request: NextRequest) {
             });
             
             if (prismaUser) {
+              const role: string = prismaUser.role === "ADMIN" || prismaUser.role === "MODERATOR" ? prismaUser.role : "USER";
               currentUser = {
                 id: prismaUser.id,
                 email: prismaUser.email,
                 name: prismaUser.name,
                 image: prismaUser.image,
+                role,
               };
               console.log("[API-UPDATE] ✅ User found via Supabase getUser:", currentUser.email);
             } else {
