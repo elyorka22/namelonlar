@@ -46,7 +46,7 @@ export default async function ProfilePage() {
     // Создаем минимальный объект пользователя из данных Supabase
     user = {
       id: currentUser.id,
-      email: currentUser.email,
+      email: currentUser.email ?? "",
       name: currentUser.name,
       image: currentUser.image,
       listings: [],
@@ -55,6 +55,11 @@ export default async function ProfilePage() {
         listings: 0,
         favorites: 0,
       },
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      emailVerified: null,
+      password: null,
+      isBusiness: false,
     } as any;
   }
 
