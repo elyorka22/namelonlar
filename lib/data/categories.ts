@@ -96,7 +96,20 @@ export async function getCategoryBySlug(slug: string) {
     return category ?? null;
   } catch (error) {
     console.error("Error fetching category:", error);
-    return null;
+    const fallback = DEFAULT_CATEGORIES.find((c) => c.slug === slug);
+    if (!fallback) return null;
+    return {
+      id: slug,
+      name: fallback.name,
+      slug: fallback.slug,
+      description: fallback.description,
+      icon: null,
+      parentId: null,
+      parent: null,
+      children: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any;
   }
 }
 
