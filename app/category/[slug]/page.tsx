@@ -46,7 +46,7 @@ export default async function CategoryPage({ params, searchParams }: PageProps) 
               Pastki kategoriyalar
             </h2>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {category.children.map((child) => (
+              {(category.children as { id: string; slug: string; name: string }[]).map((child) => (
                 <a
                   key={child.id}
                   href={`/category/${child.slug}`}
