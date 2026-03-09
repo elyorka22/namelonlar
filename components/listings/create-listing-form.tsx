@@ -119,8 +119,9 @@ export function CreateListingForm({ categories, defaultValues, onBack }: CreateL
 
       if (!response.ok) {
         if (response.status === 401) {
-          alert("Session tugadi. Iltimos, qayta kiring va yana urinib ko'ring.");
-          router.push("/auth/signin?callbackUrl=/listing/new");
+          alert(
+            "Session tugadi. Matnni yo'qotmaslik uchun shu oynani ochiq qoldiring, yangi oynada kirish qiling va keyin sahifani yangilab qayta urinib ko'ring."
+          );
           return;
         }
         if (response.status === 400 && message) {

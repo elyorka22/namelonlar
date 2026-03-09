@@ -57,16 +57,43 @@ export async function getCategories() {
 export async function getCategoryBySlug(slug: string) {
   try {
     if (!process.env.DATABASE_URL) {
-      return null;
+      const fallback = DEFAULT_CATEGORIES.find((c) => c.slug === slug);
+      if (!fallback) return null;
+      return {
+        id: slug,
+        name: fallback.name,
+        slug: fallback.slug,
+        description: fallback.description,
+        icon: null,
+        parentId: null,
+        parent: null,
+        children: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any;
     }
-    const category = await prisma.category.findUnique({
+    let category = await prisma.category.findUnique({
       where: { slug },
       include: {
         children: true,
         parent: true,
       },
     });
-    return category;
+    if (!category) {
+      const def = DEFAULT_CATEGORIES.find((c) => c.slug === slug);
+      if (def) {
+        await prisma.category.upsert({
+          where: { slug: def.slug },
+          create: { name: def.name, slug: def.slug, description: def.description },
+          update: {},
+        });
+        category = await prisma.category.findUnique({
+          where: { slug },
+          include: { children: true, parent: true },
+        });
+      }
+    }
+    return category ?? null;
   } catch (error) {
     console.error("Error fetching category:", error);
     return null;
