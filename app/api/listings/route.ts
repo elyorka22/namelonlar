@@ -51,10 +51,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(listing);
   } catch (error) {
     console.error("Error creating listing:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    const message =
+      error && typeof (error as { code?: string }).code === "string"
+        ? "Ma'lumotlar bazasi xatosi. Loyihada DATABASE_URL tekshirilsin."
+        : "Ichki xatolik. Keyinroq urinib ko'ring.";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

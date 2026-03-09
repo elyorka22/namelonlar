@@ -106,6 +106,7 @@ export function CreateListingForm({ categories, defaultValues, onBack }: CreateL
       const response = await fetch("/api/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           ...data,
           images,
@@ -113,15 +114,32 @@ export function CreateListingForm({ categories, defaultValues, onBack }: CreateL
         }),
       });
 
+      const dataRes = await response.json().catch(() => ({}));
+      const message = typeof dataRes?.error === "string" ? dataRes.error : null;
+
       if (!response.ok) {
-        throw new Error("Failed to create listing");
+        if (response.status === 401) {
+          alert("Session tugadi. Iltimos, qayta kiring va yana urinib ko'ring.");
+          router.push("/auth/signin?callbackUrl=/listing/new");
+          return;
+        }
+        if (response.status === 400 && message) {
+          alert(message);
+          return;
+        }
+        throw new Error(message || "E'lon yaratishda xatolik");
       }
 
-      const listing = await response.json();
-      router.push(`/listing/${listing.id}`);
+      const listingId = dataRes?.id;
+      if (listingId) {
+        router.push(`/listing/${listingId}`);
+      } else {
+        alert("E'lon yaratildi, lekin sahifaga o'tishda xatolik.");
+      }
     } catch (error) {
       console.error("Error creating listing:", error);
-      alert("E'lon yaratishda xatolik");
+      const msg = error instanceof Error ? error.message : "E'lon yaratishda xatolik";
+      alert(msg);
     } finally {
       setSubmitting(false);
     }

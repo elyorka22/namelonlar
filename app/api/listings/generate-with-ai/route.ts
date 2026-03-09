@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   const apiKey = (process.env.DEEPSEEK_API_KEY ?? "").trim();
   if (!apiKey || apiKey.length < 10) {
