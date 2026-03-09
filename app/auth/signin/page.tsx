@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, Suspense } from "react";
-import { signIn } from "next-auth/react";
+import { useState, useEffect, Suspense } from "react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
@@ -11,12 +11,32 @@ function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/";
+  const { data: session } = useSession();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState("");
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // Если уже авторизован — редирект, чтобы не застревать на странице входа
+  useEffect(() => {
+    const check = async () => {
+      if (session?.user) {
+        router.replace(callbackUrl);
+        return;
+      }
+      const supabase = createClient();
+      const { data: { session: sbSession } } = await supabase.auth.getSession();
+      if (sbSession?.user) {
+        router.replace(callbackUrl);
+        return;
+      }
+      setCheckingAuth(false);
+    };
+    check();
+  }, [session?.user, callbackUrl, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,6 +160,14 @@ function SignInForm() {
       setGoogleLoading(false);
     }
   };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">
+        <Loader2 className="animate-spin text-primary-600" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4">

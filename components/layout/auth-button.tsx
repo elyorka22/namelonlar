@@ -22,15 +22,17 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
   const roleFetchedRef = useRef(false);
 
   useEffect(() => {
-    // Проверяем Supabase сессию
+    // Таймаут: не показывать загрузку бесконечно
+    const loadingTimeout = setTimeout(() => {
+      setLoading(false);
+    }, 4000);
+
     const supabase = createClient();
-    
+
     const checkUser = async () => {
       try {
-        // Используем getSession вместо getUser для более надежной проверки
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
-          // Игнорируем ошибки отсутствия сессии - это нормально для неавторизованных пользователей
           if (error.message !== "Auth session missing!") {
             console.error("Error getting session:", error);
           }
@@ -41,7 +43,6 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
         setSupabaseUser(session?.user ?? null);
         setLoading(false);
       } catch (error: any) {
-        // Игнорируем ошибки отсутствия сессии
         if (error?.message !== "Auth session missing!") {
           console.error("Error checking user:", error);
         }
@@ -52,29 +53,24 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
 
     checkUser();
 
-    // Слушаем изменения в аутентификации
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      // Игнорируем INITIAL_SESSION если сессии нет
       if (event === "INITIAL_SESSION" && !session) {
         setLoading(false);
         return;
       }
-      
       setSupabaseUser(session?.user ?? null);
       setLoading(false);
-      
-      // Если пользователь вошел, обновляем страницу
       if (event === "SIGNED_IN" && session?.user) {
-        // Небольшая задержка для синхронизации с сервером
-        setTimeout(() => {
-          router.refresh();
-        }, 500);
+        setTimeout(() => router.refresh(), 500);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(loadingTimeout);
+      subscription.unsubscribe();
+    };
   }, [router]);
 
   useEffect(() => {

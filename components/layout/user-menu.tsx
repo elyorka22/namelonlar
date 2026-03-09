@@ -63,23 +63,11 @@ export function UserMenu({ user, isAdmin = false }: UserMenuProps) {
             </div>
             <div className="py-2">
               <button
-                onClick={async (e) => {
+                onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   setIsOpen(false);
-                  console.log("[USERMENU] Navigating to /profile");
-                  
-                  // Проверяем сессию перед навигацией
-                  const supabase = createClient();
-                  const { data: { session }, error } = await supabase.auth.getSession();
-                  
-                  if (session?.user) {
-                    console.log("[USERMENU] Session confirmed, navigating to profile");
-                    window.location.href = "/profile";
-                  } else {
-                    console.error("[USERMENU] No session found, redirecting to signin");
-                    window.location.href = "/auth/signin";
-                  }
+                  window.location.href = "/profile";
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
@@ -91,7 +79,6 @@ export function UserMenu({ user, isAdmin = false }: UserMenuProps) {
                   e.preventDefault();
                   e.stopPropagation();
                   setIsOpen(false);
-                  console.log("[USERMENU] Navigating to /profile/listings");
                   window.location.href = "/profile/listings";
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
@@ -104,7 +91,6 @@ export function UserMenu({ user, isAdmin = false }: UserMenuProps) {
                   e.preventDefault();
                   e.stopPropagation();
                   setIsOpen(false);
-                  console.log("[USERMENU] Navigating to /profile/favorites");
                   window.location.href = "/profile/favorites";
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
@@ -113,23 +99,11 @@ export function UserMenu({ user, isAdmin = false }: UserMenuProps) {
                 <span>Sevimlilar</span>
               </button>
               <button
-                onClick={async (e) => {
+                onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
                   setIsOpen(false);
-                  console.log("[USERMENU] Navigating to /profile/settings");
-                  
-                  // Проверяем сессию перед навигацией
-                  const supabase = createClient();
-                  const { data: { session }, error } = await supabase.auth.getSession();
-                  
-                  if (session?.user) {
-                    console.log("[USERMENU] Session confirmed, navigating to settings");
-                    window.location.href = "/profile/settings";
-                  } else {
-                    console.error("[USERMENU] No session found, redirecting to signin");
-                    window.location.href = "/auth/signin";
-                  }
+                  window.location.href = "/profile/settings";
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left"
               >
