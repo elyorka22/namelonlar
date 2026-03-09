@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { getCategories } from "@/lib/data/categories";
-import { CreateListingForm } from "@/components/listings/create-listing-form";
+import { NewListingFlow } from "@/components/listings/new-listing-flow";
 
 export default async function NewListingPage() {
   const user = await getCurrentUser();
@@ -15,9 +15,9 @@ export default async function NewListingPage() {
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-4xl">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">
-          E'lon joylashtirish
+          E&apos;lon joylashtirish
         </h1>
-        <CreateListingForm categories={categories} />
+        <NewListingFlow categories={categories} />
       </div>
     </div>
   );

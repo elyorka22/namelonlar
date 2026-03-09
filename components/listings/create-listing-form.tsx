@@ -23,11 +23,25 @@ const listingSchema = z.object({
 
 type ListingFormData = z.infer<typeof listingSchema>;
 
+export type ListingFormDefaultValues = {
+  title?: string;
+  description?: string;
+  price?: number | null;
+  categoryId?: string;
+  city?: string;
+  location?: string;
+  contactPhone?: string;
+  contactEmail?: string;
+  contactTelegram?: string;
+};
+
 interface CreateListingFormProps {
   categories: Category[];
+  defaultValues?: ListingFormDefaultValues | null;
+  onBack?: () => void;
 }
 
-export function CreateListingForm({ categories }: CreateListingFormProps) {
+export function CreateListingForm({ categories, defaultValues, onBack }: CreateListingFormProps) {
   const router = useRouter();
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -39,6 +53,19 @@ export function CreateListingForm({ categories }: CreateListingFormProps) {
     formState: { errors },
   } = useForm<ListingFormData>({
     resolver: zodResolver(listingSchema),
+    defaultValues: defaultValues
+      ? {
+          title: defaultValues.title ?? "",
+          description: defaultValues.description ?? "",
+          price: defaultValues.price ?? "",
+          categoryId: defaultValues.categoryId ?? "",
+          city: defaultValues.city ?? "",
+          location: defaultValues.location ?? "",
+          contactPhone: defaultValues.contactPhone ?? "",
+          contactEmail: defaultValues.contactEmail ?? "",
+          contactTelegram: defaultValues.contactTelegram ?? "",
+        }
+      : undefined,
   });
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -287,7 +314,7 @@ export function CreateListingForm({ categories }: CreateListingFormProps) {
       <div className="flex justify-end gap-4 pt-6 border-t border-gray-200">
         <button
           type="button"
-          onClick={() => router.back()}
+          onClick={onBack ? () => onBack() : () => router.back()}
           className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
         >
           Bekor qilish
