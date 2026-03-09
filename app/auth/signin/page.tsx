@@ -20,23 +20,23 @@ function SignInForm() {
   const [error, setError] = useState("");
   const [checkingAuth, setCheckingAuth] = useState(true);
 
-  // Если уже авторизован — редирект, чтобы не застревать на странице входа
+  // Если уже авторизован — полная перезагрузка на callbackUrl, чтобы cookies ушли на сервер (нет цикла редиректов)
   useEffect(() => {
     const check = async () => {
       if (session?.user) {
-        router.replace(callbackUrl);
+        window.location.href = callbackUrl;
         return;
       }
       const supabase = createClient();
       const { data: { session: sbSession } } = await supabase.auth.getSession();
       if (sbSession?.user) {
-        router.replace(callbackUrl);
+        window.location.href = callbackUrl;
         return;
       }
       setCheckingAuth(false);
     };
     check();
-  }, [session?.user, callbackUrl, router]);
+  }, [session?.user, callbackUrl]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

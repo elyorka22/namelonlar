@@ -158,13 +158,14 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
             <LayoutDashboard size={20} />
             <span>Boshqaruv paneli</span>
           </button>
-          <Link
-            href="/listing/new"
+          <button
+            type="button"
+            onClick={() => { window.location.href = "/listing/new"; }}
             className="hidden md:flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
           >
             <Plus size={20} />
             <span>E'lon joylashtirish</span>
-          </Link>
+          </button>
           <div className="w-9 h-9 rounded-full bg-gray-200 animate-pulse" />
         </>
       );
@@ -189,13 +190,14 @@ export function AuthButton({ isAdmin = false }: AuthButtonProps) {
             <span>Boshqaruv paneli</span>
           </button>
         )}
-        <Link
-          href="/listing/new"
+        <button
+          type="button"
+          onClick={() => { window.location.href = "/listing/new"; }}
           className="hidden md:flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
         >
           <Plus size={20} />
           <span>E'lon joylashtirish</span>
-        </Link>
+        </button>
         <UserMenu user={user} isAdmin={showAdmin} />
       </>
     );
