@@ -24,7 +24,6 @@ export default function ProfileSettingsPageClient() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        // Проверяем сессию на клиенте
         const supabase = createClient();
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
@@ -36,58 +35,22 @@ export default function ProfileSettingsPageClient() {
 
         console.log("[PROFILE-SETTINGS-CLIENT] Session found, loading user data:", session.user.email);
 
-        // Загружаем данные пользователя через API
-        const response = await fetch("/api/profile/user", {
-          method: "GET",
-          credentials: "include", // Важно: отправляем cookies
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: response.statusText }));
-          
-          if (response.status === 401) {
-            console.log("[PROFILE-SETTINGS-CLIENT] Unauthorized (401), checking session again...");
-            
-            // Проверяем сессию еще раз - возможно она есть, но синхронизация не произошла
-            const { data: { session: retrySession } } = await supabase.auth.getSession();
-            if (retrySession?.user) {
-              console.log("[PROFILE-SETTINGS-CLIENT] Session exists, but API returned 401. Retrying API call...");
-              
-              // Пробуем еще раз через небольшую задержку (возможно синхронизация в процессе)
-              await new Promise(resolve => setTimeout(resolve, 500));
-              
-              const retryResponse = await fetch("/api/profile/user", {
-                method: "GET",
-                credentials: "include",
-              });
-              
-              if (retryResponse.ok) {
-                const retryUserData = await retryResponse.json();
-                console.log("[PROFILE-SETTINGS-CLIENT] ✅ Retry successful, user data loaded:", retryUserData);
-                setUser(retryUserData);
-                setLoading(false);
-                return;
-              }
-              
-              // Если retry тоже не сработал, но сессия есть - показываем ошибку, но не редиректим
-              console.error("[PROFILE-SETTINGS-CLIENT] Retry failed, but session exists. This might be a server-side issue.");
-              setError("Server xatolik. Iltimos, sahifani yangilang.");
-              setLoading(false);
-              return;
-            }
-            
-            // Если сессии нет - редиректим
-            console.log("[PROFILE-SETTINGS-CLIENT] No session found, redirecting to signin");
-            router.push("/auth/signin");
-            return;
-          }
-          
-          throw new Error(errorData.error || `Failed to load user: ${response.statusText}`);
-        }
-
-        const userData = await response.json();
-        console.log("[PROFILE-SETTINGS-CLIENT] User data loaded:", userData);
-        setUser(userData);
+        // Используем данные из Supabase напрямую — без лишних серверных проверок
+        const sUser = session.user;
+        const profileUser: UserData = {
+          id: sUser.id,
+          email: sUser.email ?? "",
+          name:
+            (sUser.user_metadata as any)?.full_name ||
+            (sUser.user_metadata as any)?.name ||
+            null,
+          image:
+            (sUser.user_metadata as any)?.avatar_url ||
+            (sUser.user_metadata as any)?.picture ||
+            null,
+          password: null,
+        };
+        setUser(profileUser);
       } catch (err: any) {
         console.error("[PROFILE-SETTINGS-CLIENT] Error loading user:", err);
         setError(err.message || "Xatolik yuz berdi");
