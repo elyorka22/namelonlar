@@ -184,7 +184,7 @@ export function CreateListingForm({ categories, defaultValues, onBack }: CreateL
               placeholder="Masalan: iPhone 14 Pro Max 256GB"
         />
         {errors.title && (
-          <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+          <p className="mt-1 text-sm text-red-800">{errors.title.message}</p>
         )}
       </div>
 
@@ -205,7 +205,7 @@ export function CreateListingForm({ categories, defaultValues, onBack }: CreateL
           ))}
         </select>
         {errors.categoryId && (
-          <p className="mt-1 text-sm text-red-600">{errors.categoryId.message}</p>
+          <p className="mt-1 text-sm text-red-800">{errors.categoryId.message}</p>
         )}
       </div>
 
@@ -222,7 +222,7 @@ export function CreateListingForm({ categories, defaultValues, onBack }: CreateL
           placeholder="0"
         />
         {errors.price && (
-          <p className="mt-1 text-sm text-red-600">{errors.price.message}</p>
+          <p className="mt-1 text-sm text-red-800">{errors.price.message}</p>
         )}
       </div>
 
@@ -238,7 +238,7 @@ export function CreateListingForm({ categories, defaultValues, onBack }: CreateL
               placeholder="Mahsulot yoki xizmatni batafsil tavsiflang..."
         />
         {errors.description && (
-          <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+          <p className="mt-1 text-sm text-red-800">{errors.description.message}</p>
         )}
       </div>
 

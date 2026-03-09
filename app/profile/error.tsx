@@ -18,7 +18,7 @@ export default function ProfileError({
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="text-center max-w-md">
-        <AlertCircle size={64} className="mx-auto text-red-500 mb-4" />
+        <AlertCircle size={64} className="mx-auto text-red-700 mb-4" />
         <h1 className="text-3xl font-bold text-gray-900 mb-4">
           Xatolik yuz berdi
         </h1>

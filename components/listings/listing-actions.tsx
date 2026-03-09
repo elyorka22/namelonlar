@@ -46,7 +46,7 @@ export function ListingActions({ listingId }: ListingActionsProps) {
         onClick={handleFavorite}
         className={`p-2 rounded-lg transition-colors ${
           isFavorite
-            ? "bg-red-100 text-red-600"
+            ? "bg-red-100 text-red-800"
             : "bg-gray-100 text-gray-600 hover:bg-gray-200"
         }`}
       >

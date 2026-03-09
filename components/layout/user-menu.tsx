@@ -135,7 +135,7 @@ export function UserMenu({ user, isAdmin = false }: UserMenuProps) {
                   router.push("/");
                   router.refresh();
                 }}
-                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left text-red-600"
+                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-100 transition-colors text-left text-red-800"
               >
                 <LogOut size={18} />
                 <span>Chiqish</span>

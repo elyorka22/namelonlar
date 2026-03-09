@@ -144,7 +144,7 @@ export default async function MyListingsPage() {
                         <Edit size={16} />
                         <span>Tahrirlash</span>
                       </Link>
-                      <button className="flex items-center gap-2 px-4 py-2 border border-red-300 rounded-lg text-red-600 hover:bg-red-50 transition-colors">
+                      <button className="flex items-center gap-2 px-4 py-2 border border-red-200 rounded-lg text-red-800 hover:bg-red-50 transition-colors">
                         <Trash2 size={16} />
                         <span>O'chirish</span>
                       </button>

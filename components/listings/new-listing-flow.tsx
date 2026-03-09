@@ -242,7 +242,7 @@ function AiInputStep({ categories, onGenerated, onBack }: AiInputStepProps) {
         disabled={loading}
       />
       {error && (
-        <p className="mt-2 text-sm text-red-600">{error}</p>
+        <p className="mt-2 text-sm text-red-800">{error}</p>
       )}
       <div className="mt-4 flex gap-3">
         <button

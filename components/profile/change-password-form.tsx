@@ -88,7 +88,7 @@ export function ChangePasswordForm({ hasPassword }: ChangePasswordFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
+        <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center gap-2">
           <AlertCircle size={20} />
           <span>{error}</span>
         </div>

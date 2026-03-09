@@ -3,10 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 const DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.DEEPSEEK_API_KEY;
-  if (!apiKey) {
+  const apiKey = (process.env.DEEPSEEK_API_KEY ?? "").trim();
+  if (!apiKey || apiKey.length < 10) {
     return NextResponse.json(
-      { error: "DEEPSEEK_API_KEY sozlanmagan. .env.local ga qo'shing." },
+      {
+        error:
+          "DeepSeek API kaliti sozlanmagan. Lokal: .env.local da DEEPSEEK_API_KEY=sk-... qo'shing va serverni qayta ishga tushiring. Vercel: Loyiha sozlamalari → Environment Variables da DEEPSEEK_API_KEY qo'shing.",
+      },
       { status: 503 }
     );
   }

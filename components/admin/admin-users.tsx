@@ -49,7 +49,7 @@ export async function AdminUsers() {
                 <span
                   className={`px-2 py-1 rounded text-xs font-semibold ${
                     user.role === "ADMIN"
-                      ? "bg-red-100 text-red-700"
+                      ? "bg-red-100 text-red-800"
                       : user.role === "MODERATOR"
                       ? "bg-blue-100 text-blue-700"
                       : "bg-gray-100 text-gray-700"

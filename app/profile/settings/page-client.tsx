@@ -114,7 +114,7 @@ export default function ProfileSettingsPageClient() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-red-600 mb-4">{error}</p>
+          <p className="text-red-800 mb-4">{error}</p>
           <button
             onClick={() => router.push("/auth/signin")}
             className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"

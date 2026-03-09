@@ -66,7 +66,7 @@ export async function AdminListings() {
                   <form action={`/api/admin/listings/${listing.id}/reject`}>
                     <button
                       type="submit"
-                      className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                      className="p-2 bg-red-100 text-red-800 rounded-lg hover:bg-red-200 transition-colors"
                     >
                       <X size={16} />
                     </button>

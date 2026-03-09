@@ -50,7 +50,7 @@ export default async function AdminBannersPage() {
                   Holat:{" "}
                   <span
                     className={`font-semibold ${
-                      banner.isActive ? "text-green-600" : "text-red-600"
+                      banner.isActive ? "text-green-600" : "text-red-800"
                     }`}
                   >
                     {banner.isActive ? "Faol" : "Nofaol"}
@@ -66,7 +66,7 @@ export default async function AdminBannersPage() {
                   <span>Tahrirlash</span>
                 </button>
                 <button
-                  className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                  className="p-2 bg-red-100 text-red-800 rounded-lg hover:bg-red-200 transition-colors"
                   title="O'chirish"
                 >
                   <Trash2 size={16} />

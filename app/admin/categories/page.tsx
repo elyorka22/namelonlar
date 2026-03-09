@@ -87,7 +87,7 @@ export default async function AdminCategoriesPage() {
                         <Edit size={16} />
                       </button>
                       <button
-                        className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors"
+                        className="p-2 bg-red-100 text-red-800 rounded-lg hover:bg-red-200 transition-colors"
                         title="O'chirish"
                       >
                         <Trash2 size={16} />
