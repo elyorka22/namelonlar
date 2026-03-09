@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth-helpers";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/auth/role — возвращает роль текущего пользователя.
  * Используется на клиенте один раз, чтобы стабильно показывать кнопку админки без мигания.
