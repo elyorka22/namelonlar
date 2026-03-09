@@ -40,8 +40,9 @@ export async function getCurrentUser() {
     }
 
     if (user) {
-      syncUserFromSupabase(user).catch((error) => {
-        console.error("[AUTH] Sync error (non-blocking):", error);
+      await syncUserFromSupabase(user).catch((error) => {
+        console.error("[AUTH] Sync error:", error);
+        return { success: false, user: null, created: false };
       });
       let role = (user.app_metadata?.role as string) || "USER";
       if (role !== "ADMIN" && role !== "MODERATOR" && user.email) {

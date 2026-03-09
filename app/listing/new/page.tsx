@@ -1,12 +1,11 @@
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
 import { getCategories } from "@/lib/data/categories";
 import { CreateListingForm } from "@/components/listings/create-listing-form";
 
 export default async function NewListingPage() {
-  const session = await getServerSession(authOptions);
-  if (!session) {
+  const user = await getCurrentUser();
+  if (!user) {
     redirect("/auth/signin?callbackUrl=/listing/new");
   }
 
